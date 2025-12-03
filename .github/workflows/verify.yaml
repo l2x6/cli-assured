@@ -1,0 +1,62 @@
+name: verify
+
+on:
+  pull_request
+
+jobs:
+  install:
+    name: Install
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Set up Java
+        uses: actions/setup-java@v5
+        with:
+          java-version: 21
+          distribution: 'temurin'
+      - name: Checkout
+        uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+      - name: Cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.m2/repository
+          key: cli-assured-${{ hashFiles('**/pom.xml') }}-${{ github.sha }}
+          restore-keys: |
+            cli-assured-${{ hashFiles('**/pom.xml') }}-
+            cli-assured-
+      - name: Install
+        shell: bash
+        run: ./mvnw install -DskipTests -e -B -V -ntp
+
+  test:
+    name: Test
+    needs: install
+
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ "ubuntu-latest", "windows-latest", "macOS-latest" ]
+        jdk: [ "8", "11", "17", "21", "25" ]
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-java@v5
+        with:
+          java-version: ${{ matrix.jdk }}
+          distribution: 'temurin'
+
+      - uses: actions/cache@v4
+        with:
+          path: ~/.m2/repository
+          key: cli-assured-${{ hashFiles('**/pom.xml') }}-${{ github.sha }}
+
+      - run: ./mvnw verify -e -B -V -ntp -pl ':cli-assured-test-app,:cli-assured-tests'
+
