@@ -1,0 +1,65 @@
+= CLI Assured
+
+A DSL for testing command line applications.
+
+== Maven coordinates
+
+[source,xml]
+----
+<dependency>
+  <groupId>org.l2x6.cli-assured</groupId>
+    <artifactId>cli-assured</artifactId>
+  <version><!-- check the latest on http://central.maven.org/maven2/org/l2x6/cli-assured/cli-assured/ --></version>
+</dependency>
+----
+
+== Usage
+
+=== Test an executable available in `PATH`
+
+[source,java]
+----
+import org.l2x6.cli.assured.CliAssured;
+...
+
+CliAssured.command("echo", "CLI Assured rocks!")
+    .execute()
+    .awaitTermination()
+    .assertSuccess()
+    .output()
+    .hasLine("CLI Assured rocks!")
+    .hasLineCount(1);
+----
+
+=== Test a java program
+
+Having a simple Java program
+
+[source,java]
+.Hello.java
+----
+public class Hello {
+    public static void main(String[] args) {
+        System.out.println("Hello " + args[0]);
+    }
+}
+----
+
+it can be tested as follows
+
+[source,java]
+----
+import org.l2x6.cli.assured.CliAssured;
+...
+
+CliAssured
+    .java()
+    .args("path/to/Hello.java", "Joe")
+    .execute()
+    .awaitTermination()
+    .assertSuccess()
+    .output()
+    .hasLine("Hello Joe")
+    .hasLineCount(1);
+----
+

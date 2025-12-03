@@ -9,26 +9,27 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+
       - name: Set up Java
         uses: actions/setup-java@v5
         with:
           java-version: 21
           distribution: 'temurin'
-      - name: Checkout
-        uses: actions/checkout@v5
-        with:
-          persist-credentials: false
-      - name: Cache
-        uses: actions/cache@v4
-        with:
-          path: ~/.m2/repository
-          key: cli-assured-${{ hashFiles('**/pom.xml') }}-${{ github.sha }}
-          restore-keys: |
-            cli-assured-${{ hashFiles('**/pom.xml') }}-
-            cli-assured-
-      - name: Install
+          cache: maven
+
+      - name: mvn install -DskipTests -e -B -V -ntp
         shell: bash
         run: ./mvnw install -DskipTests -e -B -V -ntp
+
+      - name: Upload ~/.m2/repository
+        uses: actions/upload-artifact@v4
+        with:
+          name: local-maven-repo-${{ github.sha }}
+          path: ~/.m2/repository
 
   test:
     name: Test
@@ -37,9 +38,11 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ "ubuntu-latest", "windows-latest", "macOS-latest" ]
+        os: [ "ubuntu-latest", "windows-latest", "macos-latest" ]
         jdk: [ "8", "11", "17", "21", "25" ]
-
+        exclude:
+        - os: macos-latest
+          jdk: "8"
     runs-on: ${{ matrix.os }}
 
     steps:
@@ -53,10 +56,20 @@ jobs:
           java-version: ${{ matrix.jdk }}
           distribution: 'temurin'
 
-      - uses: actions/cache@v4
+      - id: maven-m2
+        shell: bash
+        run: |
+          echo "repo=$(./mvnw help:evaluate -Dexpression=settings.localRepository -q -DforceStdout)" >> $GITHUB_OUTPUT
+
+      - shell: bash
+        run: |
+          echo "steps.maven-m2.outputs.repo=${{ steps.maven-m2.outputs.repo }}"
+
+      - name: Download ~/.m2/repository
+        uses: actions/download-artifact@v5
         with:
-          path: ~/.m2/repository
-          key: cli-assured-${{ hashFiles('**/pom.xml') }}-${{ github.sha }}
+          name: local-maven-repo-${{ github.sha }}
+          path: ${{ steps.maven-m2.outputs.repo }}
 
       - run: ./mvnw verify -e -B -V -ntp -pl ':cli-assured-test-app,:cli-assured-tests'
 
