@@ -4,6 +4,7 @@
  */
 package org.l2x6.cli.assured;
 
+import java.time.Duration;
 import java.util.function.Consumer;
 import org.assertj.core.api.Assertions;
 
@@ -16,11 +17,11 @@ import org.assertj.core.api.Assertions;
 public class CommandResult {
     private final Command command;
     private final int exitCode;
-    private final long duration;
+    private final Duration duration;
     private final Throwable exception;
     private final CommandOutput output;
 
-    CommandResult(Command command, int exitCode, long runtimeMs, Throwable exception, CommandOutput out) {
+    CommandResult(Command command, int exitCode, Duration runtimeMs, Throwable exception, CommandOutput out) {
         super();
         this.command = command;
         this.exitCode = exitCode;
@@ -104,10 +105,10 @@ public class CommandResult {
     }
 
     /**
-     * @return the duration of the command execution in milliseconds
+     * @return the duration of the command execution
      * @since  0.0.1
      */
-    public long durationMs() {
+    public Duration durationMs() {
         return duration;
     }
 
@@ -119,7 +120,7 @@ public class CommandResult {
      * @return          this {@link CommandResult}
      * @since           0.0.1
      */
-    public CommandResult duration(Consumer<? super Long> consumer) {
+    public CommandResult duration(Consumer<? super Duration> consumer) {
         Assertions.assertThat(duration).satisfies(consumer);
         return this;
     }

@@ -60,7 +60,7 @@ public class JavaTest {
 
         command("helloErr", "Joe")
                 .stderrToStdout()
-                .execute()
+                .start()
                 .awaitTermination()
                 .assertSuccess()
                 .output()
@@ -86,9 +86,8 @@ public class JavaTest {
     void timeout() {
 
         command("sleep", "500")
-                .timeoutMs(200)
-                .execute()
-                .awaitTermination()
+                .start()
+                .awaitTermination(200)
                 .exitCode(-1)
                 .assertTimeout()
                 .output()
@@ -98,7 +97,6 @@ public class JavaTest {
 
     static CommandResult run(String... args) {
         return command(args)
-                .execute()
                 .awaitTermination();
     }
 

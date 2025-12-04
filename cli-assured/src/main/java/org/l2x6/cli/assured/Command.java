@@ -9,6 +9,7 @@ import java.io.UncheckedIOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -30,7 +31,6 @@ public class Command {
     static final org.slf4j.Logger log = LoggerFactory.getLogger(Command.class);
 
     private final Map<String, String> env;
-    final long timeoutMs;
     private final Path cd;
     final boolean stderrToStdout;
     final String[] cmdArray;
@@ -44,13 +44,11 @@ public class Command {
             String executable,
             List<String> arguments,
             Map<String, String> environment,
-            long timeoutMs,
             Path cd,
             boolean stderrToStdout) {
         this.cmdArray = asCmdArray(Objects.requireNonNull(executable, "executable"),
                 Objects.requireNonNull(arguments, "arguments"));
         this.env = Objects.requireNonNull(environment, "environment");
-        this.timeoutMs = timeoutMs;
         this.cd = Objects.requireNonNull(cd, "cd");
         this.stderrToStdout = stderrToStdout;
         this.cmdArrayString = Arrays.stream(cmdArray).collect(Collectors.joining(" "));
@@ -63,7 +61,7 @@ public class Command {
      *
      * @since  0.0.1
      */
-    public CommandProcess execute() {
+    public CommandProcess start() {
         log.info(
                 "Executing\n\n    cd {} && \\\n    {}{}\n\nwith env {}",
                 cd,
@@ -84,6 +82,40 @@ public class Command {
     }
 
     /**
+     * Starts the command {@link Process} and awaits (potentially indefinitely) its the termination.
+     *
+     * @return a {@link CommandResult}
+     * @since  0.0.1
+     */
+    public CommandResult awaitTermination() {
+        return start().awaitTermination();
+    }
+
+    /**
+     * Starts the command {@link Process} and awaits its termination at most for the specified time duration.
+     *
+     * @param  timeout maximum time to wait for the underlying process to terminate
+     *
+     * @return         a {@link CommandResult}
+     * @since          0.0.1
+     */
+    public CommandResult awaitTermination(Duration timeout) {
+        return start().awaitTermination(timeout);
+    }
+
+    /**
+     * Starts the command {@link Process} and awaits its termination at most for the specified amount of milliseconds.
+     *
+     * @param  timeoutMs maximum time in milliseconds to wait for the underlying process to terminate
+     *
+     * @return           a {@link CommandResult}
+     * @since            0.0.1
+     */
+    public CommandResult awaitTermination(long timeoutMs) {
+        return start().awaitTermination(timeoutMs);
+    }
+
+    /**
      * @return an array containing the executable and its arguments that can be passed e.g. to
      *         {@link ProcessBuilder#command(String...)}
      */
@@ -101,7 +133,6 @@ public class Command {
         private String executable;
         private List<String> args = new ArrayList<>();
         private Map<String, String> env = new LinkedHashMap<>();
-        private long timeoutMs = Long.MAX_VALUE;
         private Path cd;
         private boolean stderrToStdout = false;
 
@@ -236,16 +267,6 @@ public class Command {
         }
 
         /**
-         * @param  timeoutMs the timeout in milliseconds
-         * @return           this {@link Builder}
-         * @since            0.0.1
-         */
-        public Builder timeoutMs(long timeoutMs) {
-            this.timeoutMs = timeoutMs;
-            return this;
-        }
-
-        /**
          * Enable the redirection of {@code stderr} to {@code stdout}
          *
          * @return this {@link Builder}
@@ -269,12 +290,12 @@ public class Command {
         }
 
         /**
-         * Create a new {@link Command} and call {@link Command#execute()}
+         * Create a new {@link Command} and call {@link Command#start()}
          *
          * @return a {@link CommandProcess}
          * @since  0.0.1
          */
-        public CommandProcess execute() {
+        public CommandProcess start() {
             final List<String> args = Collections.unmodifiableList(this.args);
             this.args = null;
             final Map<String, String> env = Collections.unmodifiableMap(this.env);
@@ -283,10 +304,43 @@ public class Command {
                     executable,
                     args,
                     env,
-                    timeoutMs,
                     cd == null ? Paths.get(".").toAbsolutePath().normalize() : cd,
                     stderrToStdout);
-            return cmd.execute();
+            return cmd.start();
+        }
+
+        /**
+         * Starts the command {@link Process} and awaits (potentially indefinitely) its the termination.
+         *
+         * @return a {@link CommandResult}
+         * @since  0.0.1
+         */
+        public CommandResult awaitTermination() {
+            return start().awaitTermination();
+        }
+
+        /**
+         * Starts the command {@link Process} and awaits its termination at most for the specified time duration.
+         *
+         * @param  timeout maximum time to wait for the underlying process to terminate
+         *
+         * @return         a {@link CommandResult}
+         * @since          0.0.1
+         */
+        public CommandResult awaitTermination(Duration timeout) {
+            return start().awaitTermination(timeout);
+        }
+
+        /**
+         * Starts the command {@link Process} and awaits its termination at most for the specified amount of milliseconds.
+         *
+         * @param  timeoutMs maximum time in milliseconds to wait for the underlying process to terminate
+         *
+         * @return           a {@link CommandResult}
+         * @since            0.0.1
+         */
+        public CommandResult awaitTermination(long timeoutMs) {
+            return start().awaitTermination(timeoutMs);
         }
     }
 

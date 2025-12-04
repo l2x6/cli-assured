@@ -11,6 +11,7 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 import org.l2x6.cli.assured.CommandOutput.Stream;
 
 /**
@@ -70,61 +71,96 @@ public class CommandProcess implements Closeable {
     }
 
     /**
-     * Awaits the termination of the underlying {@link Process} honoring the timeout passed via {@link Command#timeoutMs}.
+     * Awaits (potentially indefinitely) the termination of the underlying {@link Process}.
      *
      * @return a {@link CommandResult}
      * @since  0.0.1
      */
     public CommandResult awaitTermination() {
         final long startMillisTime = System.currentTimeMillis();
+        try {
+            process.waitFor();
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new RuntimeException("Interrupted", e);
+        }
+        return terminated(startMillisTime);
+    }
+
+    /**
+     * Awaits the termination of the underlying {@link Process} at most for the specified time duration.
+     *
+     * @param  timeout maximum time to wait for the underlying process to terminate
+     *
+     * @return         a {@link CommandResult}
+     * @since          0.0.1
+     */
+    public CommandResult awaitTermination(Duration timeout) {
+        return awaitTermination(timeout.toMillis());
+    }
+
+    /**
+     * Awaits the termination of the underlying {@link Process} at most for the specified amount of milliseconds.
+     *
+     * @param  timeoutMs maximum time in milliseconds to wait for the underlying process to terminate
+     *
+     * @return           a {@link CommandResult}
+     * @since            0.0.1
+     */
+    public CommandResult awaitTermination(long timeoutMs) {
+        final long startMillisTime = System.currentTimeMillis();
 
         do {
             try {
-                int exitCode = process.exitValue();
-                try {
-                    Runtime.getRuntime().removeShutdownHook(shutDownHook);
-                } catch (Exception ignored) {
-                }
-
-                try {
-                    stdOut.join();
-                    stdOut.assertSuccess();
-
-                    if (stdErr != null) {
-                        stdErr.join();
-                        stdErr.assertSuccess();
-                    }
-                } catch (InterruptedException e) {
-                    Thread.currentThread().interrupt();
-                    throw new RuntimeException("Interrupted", e);
-                } catch (IOException e) {
-                    throw new UncheckedIOException(e);
-                }
-
-                return new CommandResult(
-                        command,
-                        exitCode,
-                        System.currentTimeMillis() - startMillisTime,
-                        null,
-                        out);
+                return terminated(startMillisTime);
             } catch (IllegalThreadStateException ex) {
                 final long duration = System.currentTimeMillis() - startMillisTime;
-                if (duration < command.timeoutMs) {
+                if (duration < timeoutMs) {
                     try {
-                        Thread.sleep(Math.min(command.timeoutMs - duration, 100));
+                        Thread.sleep(Math.min(timeoutMs - duration, 100));
                     } catch (InterruptedException e) {
                         Thread.currentThread().interrupt();
                         throw new RuntimeException("Interrupted", e);
                     }
                 }
             }
-        } while (System.currentTimeMillis() - startMillisTime <= command.timeoutMs);
+        } while (System.currentTimeMillis() - startMillisTime <= timeoutMs);
         return new CommandResult(
                 command,
                 -1,
-                System.currentTimeMillis() - startMillisTime,
+                Duration.ofMillis(System.currentTimeMillis() - startMillisTime),
                 new TimeoutAssertionError(
-                        String.format("Command has not finished within %d ms: %s", command.timeoutMs, command.cmdArrayString)),
+                        String.format("Command has not terminated within %d ms: %s", timeoutMs, command.cmdArrayString)),
+                out);
+    }
+
+    CommandResult terminated(long startMillisTime) {
+        int exitCode = process.exitValue();
+        try {
+            Runtime.getRuntime().removeShutdownHook(shutDownHook);
+        } catch (Exception ignored) {
+        }
+
+        try {
+            stdOut.join();
+            stdOut.assertSuccess();
+
+            if (stdErr != null) {
+                stdErr.join();
+                stdErr.assertSuccess();
+            }
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new RuntimeException("Interrupted", e);
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
+
+        return new CommandResult(
+                command,
+                exitCode,
+                Duration.ofMillis(System.currentTimeMillis() - startMillisTime),
+                null,
                 out);
     }
 
