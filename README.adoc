@@ -6,6 +6,8 @@ Central]]
 
 A Java DSL for testing command line applications.
 
+Requires Java 8.
+
 == Maven coordinates
 
 [source,xml]
