@@ -1,5 +1,9 @@
 = CLI Assured
 
+https://github.com/l2x6/cli-assured/blob/main/LICENSE[image:https://img.shields.io/github/license/l2x6/cli-assured.svg[License]]
+https://central.sonatype.com/artifact/org.l2x6.cli-assured/cli-assured[image:https://img.shields.io/maven-central/v/org.l2x6.cli-assured/cli-assured.svg[Maven
+Central]]
+
 A Java DSL for testing command line applications.
 
 == Maven coordinates
@@ -8,10 +12,12 @@ A Java DSL for testing command line applications.
 ----
 <dependency>
   <groupId>org.l2x6.cli-assured</groupId>
-    <artifactId>cli-assured</artifactId>
-  <version><!-- check the latest on http://central.maven.org/maven2/org/l2x6/cli-assured/cli-assured/ --></version>
+  <artifactId>cli-assured</artifactId>
+  <version><!-- Use the latest --></version>
 </dependency>
 ----
+
+Find the latest version on https://central.sonatype.com/artifact/org.l2x6.cli-assured/cli-assured[Maven Central].
 
 == Usage
 
