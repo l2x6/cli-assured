@@ -7,7 +7,10 @@ package org.l2x6.cli.assured;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import org.assertj.core.api.Assertions;
+import org.assertj.core.api.Condition;
 
 /**
  * An output of a {@link CommandProcess}.
@@ -69,7 +72,7 @@ public class CommandOutput {
     }
 
     /**
-     * Asserts that the given line is present in either {@code stdout} or {@code stderr}.
+     * Asserts that the given line is present in the specified {@code stream}.
      *
      * @param  stream the stream to seek in
      * @param  line   the line text to look for
@@ -79,6 +82,175 @@ public class CommandOutput {
     public CommandOutput hasLine(Stream stream, String line) {
         synchronized (lock) {
             Assertions.assertThat(lines).filteredOn(l -> stream.contains(l.stream)).map(Line::line).contains(line);
+        }
+        return this;
+    }
+
+    /**
+     * Asserts that the given line is not present in either {@code stdout} or {@code stderr}.
+     *
+     * @param  line the line text to look for
+     * @return      this {@link CommandOutput}
+     * @since       0.0.1
+     */
+    public CommandOutput doesNotHaveLine(String line) {
+        synchronized (lock) {
+            Assertions.assertThat(lines).map(Line::line).doesNotContain(line);
+        }
+        return this;
+    }
+
+    /**
+     * Asserts that the given line is not present in the specified {@code stream}.
+     *
+     * @param  stream the stream to seek in
+     * @param  line   the line text to look for
+     * @return        this {@link CommandOutput}
+     * @since         0.0.1
+     */
+    public CommandOutput doesNotHaveLine(Stream stream, String line) {
+        synchronized (lock) {
+            Assertions.assertThat(lines).filteredOn(l -> stream.contains(l.stream)).map(Line::line).doesNotContain(line);
+        }
+        return this;
+    }
+
+    /**
+     * Asserts that a line containing the given {@code substring} is present in either {@code stdout} or {@code stderr}.
+     *
+     * @param  substring the line text to look for
+     * @return           this {@link CommandOutput}
+     * @since            0.0.1
+     */
+    public CommandOutput hasLineContaining(String substring) {
+        synchronized (lock) {
+            Assertions.assertThat(lines)
+                    .map(Line::line)
+                    .satisfies(hasLineWithSubstring(substring));
+        }
+        return this;
+    }
+
+    /**
+     * Asserts that a line containing the given {@code substring} is present in the specified {@code stream}.
+     *
+     * @param  stream    the stream to seek in
+     * @param  substring the line text to look for
+     * @return           this {@link CommandOutput}
+     * @since            0.0.1
+     */
+    public CommandOutput hasLineContaining(Stream stream, String substring) {
+        synchronized (lock) {
+            Assertions.assertThat(lines)
+                    .filteredOn(l -> stream.contains(l.stream))
+                    .map(Line::line)
+                    .satisfies(hasLineWithSubstring(substring));
+        }
+        return this;
+    }
+
+    /**
+     * Asserts that a line containing the given {@code substring} is not present in either {@code stdout} or {@code stderr}.
+     *
+     * @param  substring the line text to look for
+     * @return           this {@link CommandOutput}
+     * @since            0.0.1
+     */
+    public CommandOutput doesNotHaveLineContaining(String substring) {
+        synchronized (lock) {
+            Assertions.assertThat(lines)
+                    .map(Line::line)
+                    .satisfies(doesNotHaveLineWithSubstring(substring));
+        }
+        return this;
+    }
+
+    /**
+     * Asserts that a line containing the given {@code substring} is not present in the specified {@code stream}.
+     *
+     * @param  stream    the stream to seek in
+     * @param  substring the line text to look for
+     * @return           this {@link CommandOutput}
+     * @since            0.0.1
+     */
+    public CommandOutput doesNotHaveLineContaining(Stream stream, String substring) {
+        synchronized (lock) {
+            Assertions.assertThat(lines)
+                    .filteredOn(l -> stream.contains(l.stream))
+                    .map(Line::line)
+                    .satisfies(doesNotHaveLineWithSubstring(substring));
+        }
+        return this;
+    }
+
+    /**
+     * Asserts that a line matching the given {@code regex} is present in either {@code stdout} or {@code stderr}.
+     * The regular expression is evaluated using {@link Matcher#find()} rather than {@link Matcher#matches()}
+     *
+     * @param  regex the regular expression to evaluate
+     * @return       this {@link CommandOutput}
+     * @since        0.0.1
+     */
+    public CommandOutput hasLineMatching(String regex) {
+        synchronized (lock) {
+            Assertions.assertThat(lines)
+                    .map(Line::line)
+                    .satisfies(hasLineMatchingRegex(regex));
+        }
+        return this;
+    }
+
+    /**
+     * Asserts that a line matching the given {@code regex} is present in the specified {@code stream}.
+     * The regular expression is evaluated using {@link Matcher#find()} rather than {@link Matcher#matches()}
+     *
+     * @param  stream the stream to seek in
+     * @param  regex  the regular expression to evaluate
+     * @return        this {@link CommandOutput}
+     * @since         0.0.1
+     */
+    public CommandOutput hasLineMatching(Stream stream, String regex) {
+        synchronized (lock) {
+            Assertions.assertThat(lines)
+                    .filteredOn(l -> stream.contains(l.stream))
+                    .map(Line::line)
+                    .satisfies(hasLineMatchingRegex(regex));
+        }
+        return this;
+    }
+
+    /**
+     * Asserts that a line matching the given {@code regex} is not present in either {@code stdout} or {@code stderr}.
+     * The regular expression is evaluated using {@link Matcher#find()} rather than {@link Matcher#matches()}
+     *
+     * @param  regex the regular expression to evaluate
+     * @return       this {@link CommandOutput}
+     * @since        0.0.1
+     */
+    public CommandOutput doesNotHaveLineMatching(String regex) {
+        synchronized (lock) {
+            Assertions.assertThat(lines)
+                    .map(Line::line)
+                    .satisfies(doesNotHaveLineMatchingRegex(regex));
+        }
+        return this;
+    }
+
+    /**
+     * Asserts that a line matching the given {@code regex} is not present in the specified {@code stream}.
+     * The regular expression is evaluated using {@link Matcher#find()} rather than {@link Matcher#matches()}
+     *
+     * @param  stream the stream to seek in
+     * @param  regex  the regular expression to evaluate
+     * @return        this {@link CommandOutput}
+     * @since         0.0.1
+     */
+    public CommandOutput doesNotHaveLineMatching(Stream stream, String regex) {
+        synchronized (lock) {
+            Assertions.assertThat(lines)
+                    .filteredOn(l -> stream.contains(l.stream))
+                    .map(Line::line)
+                    .satisfies(doesNotHaveLineMatchingRegex(regex));
         }
         return this;
     }
@@ -119,6 +291,29 @@ public class CommandOutput {
         synchronized (lock) {
             return new ArrayList<>(lines);
         }
+    }
+
+    static Condition<List<? extends String>> hasLineWithSubstring(String substring) {
+        return new Condition<>(lines -> lines.stream().anyMatch(l -> l.contains(substring)),
+                "Should have a line containing '%s'", substring);
+    }
+
+    static Condition<List<? extends String>> doesNotHaveLineWithSubstring(String substring) {
+        return new Condition<>(lines -> lines.stream().noneMatch(l -> l.contains(substring)),
+                "Should not have a line containing '%s'", substring);
+    }
+
+    static Condition<List<? extends String>> hasLineMatchingRegex(String regex) {
+        Pattern pat = Pattern.compile(regex);
+        return new Condition<>(lines -> lines.stream().anyMatch(l -> pat.matcher(l).find()), "Should have a line matching '%s'",
+                regex);
+    }
+
+    static Condition<List<? extends String>> doesNotHaveLineMatchingRegex(String regex) {
+        Pattern pat = Pattern.compile(regex);
+        return new Condition<>(lines -> lines.stream().noneMatch(l -> pat.matcher(l).find()),
+                "Should not have a line matching '%s'",
+                regex);
     }
 
     /**
