@@ -96,6 +96,165 @@ public class JavaTest {
                 .hasLineCount(1);
     }
 
+    @Test
+    void hasLineContaining() {
+        run("hello", "Joe")
+                .assertSuccess()
+                .output()
+                .hasLineContaining("lo J")
+                .hasLineContaining(Stream.stdout, "lo J")
+                .hasLineContaining(Stream.any, "lo J")
+                .hasLineCount(1);
+
+        try {
+            run("hello", "Joe")
+                    .assertSuccess()
+                    .output()
+                    .hasLineContaining(Stream.stderr, "lo J");
+            Assertions.fail("AssertionError expected");
+        } catch (AssertionError expected) {
+        }
+
+    }
+
+    @Test
+    void hasLineMatching() {
+        run("hello", "Joe")
+                .assertSuccess()
+                .output()
+                .hasLineMatching("lo J.e")
+                .hasLineMatching(Stream.stdout, "lo J.e")
+                .hasLineMatching(Stream.any, "lo J.e")
+                .hasLineCount(1);
+
+        try {
+            run("hello", "Joe")
+                    .assertSuccess()
+                    .output()
+                    .hasLineMatching(Stream.stderr, "lo J.e");
+            Assertions.fail("AssertionError expected");
+        } catch (AssertionError expected) {
+        }
+    }
+
+    @Test
+    void doesNotHaveLine() {
+        run("hello", "Joe")
+                .assertSuccess()
+                .output()
+                .doesNotHaveLine("John")
+                .doesNotHaveLine(Stream.stdout, "John")
+                .doesNotHaveLine(Stream.stderr, "John")
+                .doesNotHaveLine(Stream.any, "John")
+                .hasLineCount(1);
+
+        try {
+            run("hello", "Joe")
+                    .assertSuccess()
+                    .output()
+                    .doesNotHaveLine("Hello Joe");
+            Assertions.fail("AssertionError expected");
+        } catch (AssertionError expected) {
+        }
+
+        try {
+            run("hello", "Joe")
+                    .assertSuccess()
+                    .output()
+                    .doesNotHaveLine(Stream.stdout, "Hello Joe");
+            Assertions.fail("AssertionError expected");
+        } catch (AssertionError expected) {
+        }
+
+        try {
+            run("hello", "Joe")
+                    .assertSuccess()
+                    .output()
+                    .doesNotHaveLine(Stream.any, "Hello Joe");
+            Assertions.fail("AssertionError expected");
+        } catch (AssertionError expected) {
+        }
+
+    }
+
+    @Test
+    void doesNotHaveLineContaining() {
+        run("hello", "Joe")
+                .assertSuccess()
+                .output()
+                .doesNotHaveLineContaining("John")
+                .doesNotHaveLineContaining(Stream.stdout, "John")
+                .doesNotHaveLineContaining(Stream.stderr, "John")
+                .doesNotHaveLineContaining(Stream.any, "John")
+                .hasLineCount(1);
+
+        try {
+            run("hello", "Joe")
+                    .assertSuccess()
+                    .output()
+                    .doesNotHaveLineContaining("Joe");
+            Assertions.fail("AssertionError expected");
+        } catch (AssertionError expected) {
+        }
+
+        try {
+            run("hello", "Joe")
+                    .assertSuccess()
+                    .output()
+                    .doesNotHaveLineContaining(Stream.stdout, "Joe");
+            Assertions.fail("AssertionError expected");
+        } catch (AssertionError expected) {
+        }
+
+        try {
+            run("hello", "Joe")
+                    .assertSuccess()
+                    .output()
+                    .doesNotHaveLineContaining(Stream.any, "Joe");
+            Assertions.fail("AssertionError expected");
+        } catch (AssertionError expected) {
+        }
+    }
+
+    @Test
+    void doesNotHaveLineMatching() {
+        run("hello", "Joe")
+                .assertSuccess()
+                .output()
+                .doesNotHaveLineMatching("Hello M.*")
+                .doesNotHaveLineMatching(Stream.stdout, "Hello M.*")
+                .doesNotHaveLineMatching(Stream.stderr, "Hello M.*")
+                .doesNotHaveLineMatching(Stream.any, "Hello M.*")
+                .hasLineCount(1);
+
+        try {
+            run("hello", "Joe")
+                    .assertSuccess()
+                    .output()
+                    .doesNotHaveLineMatching("lo Jo.*");
+            Assertions.fail("AssertionError expected");
+        } catch (AssertionError expected) {
+        }
+
+        try {
+            run("hello", "Joe")
+                    .assertSuccess()
+                    .output()
+                    .doesNotHaveLineMatching(Stream.stdout, "lo Jo.*");
+            Assertions.fail("AssertionError expected");
+        } catch (AssertionError expected) {
+        }
+
+        try {
+            run("hello", "Joe")
+                    .assertSuccess()
+                    .output()
+                    .doesNotHaveLineMatching(Stream.any, "lo Jo.*");
+            Assertions.fail("AssertionError expected");
+        } catch (AssertionError expected) {
+        }
+    }
+
     static CommandResult run(String... args) {
         return command(args)
                 .awaitTermination();
