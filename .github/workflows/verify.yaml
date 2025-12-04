@@ -21,9 +21,9 @@ jobs:
           distribution: 'temurin'
           cache: maven
 
-      - name: mvn install -DskipTests -e -B -V -ntp
+      - name: mvn install -DskipTests -e -B -ntp
         shell: bash
-        run: ./mvnw install -DskipTests -e -B -V -ntp
+        run: ./mvnw install -DskipTests -e -B -ntp
 
       - name: Upload ~/.m2/repository
         uses: actions/upload-artifact@v4
@@ -71,5 +71,5 @@ jobs:
           name: local-maven-repo-${{ github.sha }}
           path: ${{ steps.maven-m2.outputs.repo }}
 
-      - run: ./mvnw verify -e -B -V -ntp -pl ':cli-assured-test-app,:cli-assured-tests'
+      - run: ./mvnw test -e -B -ntp -pl ':cli-assured-tests'
 

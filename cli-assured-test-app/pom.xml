@@ -17,8 +17,4 @@
     <artifactId>cli-assured-test-app</artifactId>
     <name>${project.groupId}:${project.artifactId}</name>
 
-    <build>
-        <finalName>${project.artifactId}</finalName>
-    </build>
-
 </project>

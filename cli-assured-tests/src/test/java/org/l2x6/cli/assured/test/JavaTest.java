@@ -4,6 +4,7 @@
  */
 package org.l2x6.cli.assured.test;
 
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import org.assertj.core.api.Assertions;
@@ -101,8 +102,23 @@ public class JavaTest {
     }
 
     static Command.Builder command(String... args) {
-        final Path testAppJar = Paths.get("../cli-assured-test-app/target/cli-assured-test-app.jar");
-        Assertions.assertThat(testAppJar).isRegularFile();
+        final String testAppArtifactId = "cli-assured-test-app";
+        final String version = System.getProperty("project.version");
+        Path testAppJar = Paths.get("../" + testAppArtifactId + "/target/" + testAppArtifactId + "-" + version + ".jar");
+        if (!Files.isRegularFile(testAppJar)) {
+
+            Path localRepo = Paths.get(System.getProperty("settings.localRepository"));
+            Assertions.assertThat(localRepo).isDirectory();
+            final String groupId = System.getProperty("project.groupId");
+            final Path testAppJarMavenRepo = localRepo.resolve(groupId.replace('.', '/'))
+                    .resolve(testAppArtifactId)
+                    .resolve(version)
+                    .resolve(testAppArtifactId + "-" + version + ".jar");
+            if (!Files.isRegularFile(testAppJarMavenRepo)) {
+                throw new IllegalStateException("Either " + testAppJar + " or " + testAppJarMavenRepo + " must exist");
+            }
+            testAppJar = testAppJarMavenRepo;
+        }
 
         return CliAssured
                 .java()
