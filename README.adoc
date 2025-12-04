@@ -23,7 +23,6 @@ import org.l2x6.cli.assured.CliAssured;
 ...
 
 CliAssured.command("echo", "CLI Assured rocks!")
-    .execute()
     .awaitTermination()
     .assertSuccess()
     .output()
@@ -55,7 +54,6 @@ import org.l2x6.cli.assured.CliAssured;
 CliAssured
     .java()
     .args("path/to/Hello.java", "Joe")
-    .execute()
     .awaitTermination()
     .assertSuccess()
     .output()

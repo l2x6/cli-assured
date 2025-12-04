@@ -12,7 +12,6 @@ public class EchoTest {
     @Test
     void echo() {
         CliAssured.command("echo", "CLI Assured rocks!")
-                .execute()
                 .awaitTermination()
                 .assertSuccess()
                 .output()

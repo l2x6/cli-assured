@@ -25,7 +25,6 @@ public class JavaSourceTest {
                 .java()
                 .args(helloJava.toString())
                 .args("Joe")
-                .execute()
                 .awaitTermination()
                 .assertSuccess()
                 .output()
