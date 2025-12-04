@@ -1,6 +1,6 @@
 = CLI Assured
 
-A DSL for testing command line applications.
+A Java DSL for testing command line applications.
 
 == Maven coordinates
 
