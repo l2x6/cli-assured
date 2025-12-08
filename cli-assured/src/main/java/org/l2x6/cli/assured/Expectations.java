@@ -67,8 +67,8 @@ public class Expectations {
          * Assert that the process exits with any the given {@code expectedExitCodes}
          *
          * @param  expectedExitCodes the exit codes to assert
-         * @return                  this {@link Builder}
-         * @since                   0.0.1
+         * @return                   this {@link Builder}
+         * @since                    0.0.1
          */
         public Builder exitCode(int... expectedExitCodes) {
             this.exitCodeAsserts.add(ExitCodeAssert.any(expectedExitCodes));

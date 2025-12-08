@@ -318,7 +318,7 @@ public class OutputLineAsserts implements LineAssert {
         }
 
         /**
-         * @param expectedExitCode
+         * @param  expectedExitCode
          * @return
          */
         public CommandProcess exitCode(int... expectedExitCodes) {

@@ -85,7 +85,7 @@ public class Command {
     }
 
     /**
-     * Starts the command {@link Process} and awaits (potentially indefinitely) its the termination.
+     * Starts the command {@link Process} and awaits (potentially indefinitely) its termination.
      *
      * @return a {@link CommandResult}
      * @since  0.0.1
@@ -95,7 +95,7 @@ public class Command {
     }
 
     /**
-     * Starts the command {@link Process} and awaits its termination at most for the specified time duration.
+     * Starts the command {@link Process} and awaits its termination at most for the specified duration.
      *
      * @param  timeout maximum time to wait for the underlying process to terminate
      *

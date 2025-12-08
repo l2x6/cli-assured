@@ -89,8 +89,9 @@ public abstract class OutputAsserts extends Thread implements OutputAssert {
         /**
          * Create a new {@link OutputAsserts} out of this {@link Builder} and set it on the parent
          * {@link Expectations.Builder}
+         *
          * @return {@link Expectations.Builder}
-         * @since 0.0.1
+         * @since  0.0.1
          */
         public Expectations.Builder parent() {
             return expectations.apply(this.build());
