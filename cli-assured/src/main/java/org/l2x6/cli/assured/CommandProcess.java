@@ -4,15 +4,9 @@
  */
 package org.l2x6.cli.assured;
 
-import java.io.BufferedReader;
 import java.io.Closeable;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.io.UncheckedIOException;
-import java.nio.charset.StandardCharsets;
 import java.time.Duration;
-import org.l2x6.cli.assured.CommandOutput.Stream;
+import org.l2x6.cli.assured.asserts.OutputAssert;
 
 /**
  * A wrapper around {@link Process} that manages its destroying and offers
@@ -26,9 +20,8 @@ public class CommandProcess implements Closeable {
     private final Command command;
     private final Process process;
     private final Thread shutDownHook;
-    private final StreamGobbler stdOut;
-    private final StreamGobbler stdErr;
-    private final CommandOutput out;
+    private final OutputAsserts out;
+    private final OutputAsserts err;
 
     private volatile boolean closed = false;
 
@@ -37,15 +30,12 @@ public class CommandProcess implements Closeable {
         this.command = command;
         this.process = process;
 
-        out = new CommandOutput();
-        stdOut = new StreamGobbler(process.getInputStream(), Stream.stdout, out);
-        stdOut.start();
+        out = command.expectations.stdout().apply(process.getInputStream());
 
         if (command.stderrToStdout) {
-            stdErr = null;
+            err = null;
         } else {
-            stdErr = new StreamGobbler(process.getErrorStream(), Stream.stderr, out);
-            stdErr.start();
+            err = command.expectations.stderr().apply(process.getErrorStream());
         }
 
         this.shutDownHook = new Thread(new Runnable() {
@@ -57,17 +47,40 @@ public class CommandProcess implements Closeable {
         Runtime.getRuntime().addShutdownHook(shutDownHook);
     }
 
+    /**
+     * A shorthand for {@link #kill(boolean) kill(false)}
+     *
+     * @since 0.0.1
+     */
     @Override
     public void close() {
+        kill(false);
+    }
+
+    /**
+     * Calls {@link OutputAsserts#cancel()} on both {@link #out} and {@link #err} and kills the underlying process.
+     *
+     * @param forcibly if {@code true} will call {@link Process#destroyForcibly()}; otherwise will call
+     *                 {@link Process#destroy()}
+     * @since          0.0.1
+     */
+    public void kill(boolean forcibly) {
         if (!closed) {
             this.closed = true;
-            process.destroy();
-            stdOut.cancel();
-            if (stdErr != null) {
-                stdErr.cancel();
+            out.cancel();
+            if (err != null) {
+                err.cancel();
             }
-            process.destroy();
         }
+
+        if (process != null && process.isAlive()) {
+            if (forcibly) {
+                process.destroy();
+            } else {
+                process.destroyForcibly();
+            }
+        }
+
     }
 
     /**
@@ -131,7 +144,7 @@ public class CommandProcess implements Closeable {
                 Duration.ofMillis(System.currentTimeMillis() - startMillisTime),
                 new TimeoutAssertionError(
                         String.format("Command has not terminated within %d ms: %s", timeoutMs, command.cmdArrayString)),
-                out);
+                joinAsserts());
     }
 
     CommandResult terminated(long startMillisTime) {
@@ -142,18 +155,14 @@ public class CommandProcess implements Closeable {
         }
 
         try {
-            stdOut.join();
-            stdOut.assertSuccess();
+            out.join();
 
-            if (stdErr != null) {
-                stdErr.join();
-                stdErr.assertSuccess();
+            if (err != null) {
+                err.join();
             }
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             throw new RuntimeException("Interrupted", e);
-        } catch (IOException e) {
-            throw new UncheckedIOException(e);
         }
 
         return new CommandResult(
@@ -161,47 +170,11 @@ public class CommandProcess implements Closeable {
                 exitCode,
                 Duration.ofMillis(System.currentTimeMillis() - startMillisTime),
                 null,
-                out);
+                joinAsserts());
     }
 
-    /**
-     * The usual friend of {@link Process#getInputStream()} / {@link Process#getErrorStream()}.
-     *
-     * @since 0.0.1
-     */
-    static class StreamGobbler extends Thread {
-        private volatile boolean cancelled;
-        private IOException exception;
-        private final InputStream in;
-        private final CommandOutput out;
-        private final Stream stream;
-
-        private StreamGobbler(InputStream in, Stream stream, CommandOutput out) {
-            this.in = in;
-            this.stream = stream;
-            this.out = out;
-        }
-
-        public void assertSuccess() throws IOException {
-            if (exception != null) {
-                throw exception;
-            }
-        }
-
-        public void cancel() {
-            this.cancelled = true;
-        }
-
-        @Override
-        public void run() {
-            try (BufferedReader r = new BufferedReader(new InputStreamReader(in, StandardCharsets.UTF_8))) {
-                String line;
-                while (!cancelled && (line = r.readLine()) != null) {
-                    out.add(stream, line);
-                }
-            } catch (IOException e) {
-                exception = e;
-            }
-        }
+    OutputAssert joinAsserts() {
+        return err == null ? out : OutputAssert.all(out, err);
     }
+
 }

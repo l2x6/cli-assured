@@ -35,6 +35,7 @@ public class Command {
     final boolean stderrToStdout;
     final String[] cmdArray;
     final String cmdArrayString;
+    final Expectations expectations;
 
     public static Builder builder() {
         return new Builder();
@@ -45,11 +46,13 @@ public class Command {
             List<String> arguments,
             Map<String, String> environment,
             Path cd,
-            boolean stderrToStdout) {
+            boolean stderrToStdout,
+            Expectations expectations) {
         this.cmdArray = asCmdArray(Objects.requireNonNull(executable, "executable"),
                 Objects.requireNonNull(arguments, "arguments"));
         this.env = Objects.requireNonNull(environment, "environment");
         this.cd = Objects.requireNonNull(cd, "cd");
+        this.expectations = expectations;
         this.stderrToStdout = stderrToStdout;
         this.cmdArrayString = Arrays.stream(cmdArray).collect(Collectors.joining(" "));
     }
@@ -63,7 +66,7 @@ public class Command {
      */
     public CommandProcess start() {
         log.info(
-                "Executing\n\n    cd {} && \\\n    {}{}\n\nwith env {}",
+                "Executing\n\n    cd {} && {}{}\n\nwith env {}",
                 cd,
                 cmdArrayString,
                 stderrToStdout ? " 2>&1" : "",
@@ -135,6 +138,7 @@ public class Command {
         private Map<String, String> env = new LinkedHashMap<>();
         private Path cd;
         private boolean stderrToStdout = false;
+        private Expectations.Builder expectations;
 
         /**
          * Set the executable of the command and its arguments
@@ -302,6 +306,26 @@ public class Command {
         }
 
         /**
+         * @return a new {@link Expectations.Builder}
+         * @since  0.0.1
+         */
+        public Expectations.Builder expect() {
+            return Expectations.builder(this);
+        }
+
+        /**
+         * Impose the given {@link Expectations} on the command execution.
+         *
+         * @param  expectations the Expectations to set
+         * @return              this {@link Builder}
+         * @since               0.0.1
+         */
+        public Builder expect(Expectations.Builder expectations) {
+            this.expectations = expectations;
+            return this;
+        }
+
+        /**
          * Create a new {@link Command} and call {@link Command#start()}
          *
          * @return a {@link CommandProcess}
@@ -317,12 +341,13 @@ public class Command {
                     args,
                     env,
                     cd == null ? Paths.get(".").toAbsolutePath().normalize() : cd,
-                    stderrToStdout);
+                    stderrToStdout,
+                    expectations.build());
             return cmd.start();
         }
 
         /**
-         * Starts the command {@link Process} and awaits (potentially indefinitely) its the termination.
+         * A shorthand for {@link #start()}.{@link CommandProcess#awaitTermination() awaitTermination()}.
          *
          * @return a {@link CommandResult}
          * @since  0.0.1
@@ -332,7 +357,7 @@ public class Command {
         }
 
         /**
-         * Starts the command {@link Process} and awaits its termination at most for the specified time duration.
+         * A shorthand for {@link #start()}.{@link CommandProcess#awaitTermination(Duration) awaitTermination(timeout)}.
          *
          * @param  timeout maximum time to wait for the underlying process to terminate
          *
@@ -344,7 +369,7 @@ public class Command {
         }
 
         /**
-         * Starts the command {@link Process} and awaits its termination at most for the specified amount of milliseconds.
+         * A shorthand for {@link #start()}.{@link CommandProcess#awaitTermination(long) awaitTermination(timeoutMs)}.
          *
          * @param  timeoutMs maximum time in milliseconds to wait for the underlying process to terminate
          *
@@ -354,6 +379,7 @@ public class Command {
         public CommandResult awaitTermination(long timeoutMs) {
             return start().awaitTermination(timeoutMs);
         }
+
     }
 
 }

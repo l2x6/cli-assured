@@ -25,11 +25,14 @@ public class JavaSourceTest {
                 .java()
                 .args(helloJava.toString())
                 .args("Joe")
+                .expect()
+                .stdout()
+                .lines()
+                .contains("Hello Joe")
+                .hasCount(1)
+                .start()
                 .awaitTermination()
-                .assertSuccess()
-                .output()
-                .hasLine("Hello Joe")
-                .hasLineCount(1);
+                .assertSuccess();
 
     }
 }

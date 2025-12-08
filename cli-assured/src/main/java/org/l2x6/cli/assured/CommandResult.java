@@ -5,8 +5,7 @@
 package org.l2x6.cli.assured;
 
 import java.time.Duration;
-import java.util.function.Consumer;
-import org.assertj.core.api.Assertions;
+import org.l2x6.cli.assured.asserts.OutputAssert;
 
 /**
  * A result of a {@link CommandProcess}'s execution.
@@ -19,15 +18,15 @@ public class CommandResult {
     private final int exitCode;
     private final Duration duration;
     private final Throwable exception;
-    private final CommandOutput output;
+    private final OutputAssert outputAssert;
 
-    CommandResult(Command command, int exitCode, Duration runtimeMs, Throwable exception, CommandOutput out) {
+    CommandResult(Command command, int exitCode, Duration runtimeMs, Throwable exception, OutputAssert outputAssert) {
         super();
         this.command = command;
         this.exitCode = exitCode;
         this.duration = runtimeMs;
         this.exception = exception;
-        this.output = out;
+        this.outputAssert = outputAssert;
     }
 
     /**
@@ -44,12 +43,9 @@ public class CommandResult {
     public CommandResult assertSuccess() {
         if (exception != null) {
             throw new AssertionError("Exception was thrown when running " + command.cmdArrayString + ": "
-                    + exception.getMessage() + "\nCommand output\n" + output.toString(), exception);
+                    + exception.getMessage() + "\nCommand output\n" + outputAssert.toString(), exception);
         }
-        if (exitCode != 0) {
-            throw new AssertionError(String.format("Command returned exit code %d: %s\nCommand output:\n%s", exitCode,
-                    command.cmdArrayString, output));
-        }
+        outputAssert.assertSatisfied();
         return this;
     }
 
@@ -64,35 +60,9 @@ public class CommandResult {
         if (!(exception instanceof TimeoutAssertionError)) {
             throw new AssertionError(
                     "Expected a timeout when running " + command.cmdArrayString + ": but got exit code " + exitCode
-                            + "\nCommand output\n" + output.toString(),
+                            + "\nCommand output\n" + outputAssert.toString(),
                     exception);
         }
-        return this;
-    }
-
-    /**
-     * Assert that the exit code of the command satisfies the given {@link Consumer}. Handy with AssertJ assertions.
-     *
-     * @param  consumer
-     * @return          this {@link CommandResult}
-     * @since           0.0.1
-     */
-    public CommandResult exitCode(Consumer<? super Integer> consumer) {
-        Assertions.assertThat(exitCode)
-                .satisfies(consumer);
-        return this;
-    }
-
-    /**
-     * Assert that the command exited with the expected exit code
-     *
-     * @param  expected the expected exit code
-     * @return          this {@link CommandResult}
-     * @since           0.0.1
-     */
-    public CommandResult exitCode(int expected) {
-        Assertions.assertThat(exitCode).withFailMessage("Expecting exit code " + expected + "but got " + exitCode)
-                .isEqualTo(expected);
         return this;
     }
 
@@ -112,20 +82,4 @@ public class CommandResult {
         return duration;
     }
 
-    /**
-     * Assert that the duration of the command execution satisfies the given {@link Consumer}. Handy with AssertJ
-     * assertions.
-     *
-     * @param  consumer
-     * @return          this {@link CommandResult}
-     * @since           0.0.1
-     */
-    public CommandResult duration(Consumer<? super Duration> consumer) {
-        Assertions.assertThat(duration).satisfies(consumer);
-        return this;
-    }
-
-    public CommandOutput output() {
-        return output;
-    }
 }
