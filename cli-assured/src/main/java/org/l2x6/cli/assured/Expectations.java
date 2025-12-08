@@ -22,10 +22,12 @@ public class Expectations {
     final Function<InputStream, OutputAsserts> stderr;
     final List<ExitCodeAssert> exitCodeAsserts;
 
-    private Expectations(Function<InputStream, OutputAsserts> stdout, Function<InputStream, OutputAsserts> stderr,
+    private Expectations(
+            Function<InputStream, OutputAsserts> stdout,
+            Function<InputStream, OutputAsserts> stderr,
             List<ExitCodeAssert> exitCodeAsserts) {
         this.stdout = Objects.requireNonNull(stdout, "stdout");
-        this.stderr = Objects.requireNonNull(stderr, "stderr");
+        this.stderr = stderr;
         this.exitCodeAsserts = Objects.requireNonNull(exitCodeAsserts, "exitCodeAsserts");
     }
 
@@ -41,25 +43,40 @@ public class Expectations {
         private Function<InputStream, OutputAsserts> stderrAsserts;
         private List<ExitCodeAssert> exitCodeAsserts = new ArrayList<>();
 
+        private boolean stderrToStdout;
+
         private Builder(org.l2x6.cli.assured.Command.Builder command) {
             this.command = command;
         }
 
+        /**
+         * @return new {@link OutputAsserts.Builder}
+         * @since  0.0.1
+         */
         public OutputAsserts.Builder stdout() {
-            return OutputAsserts.builder(this::stdout);
+            return new OutputAsserts.Builder(this::stdout);
         }
 
+        /**
+         * @return new {@link OutputAsserts.Builder}
+         * @since  0.0.1
+         */
         public OutputAsserts.Builder stderr() {
-            return OutputAsserts.builder(this::stderr);
+            if (stderrToStdout) {
+                throw new IllegalStateException(
+                        "You cannot set any assertions on stderr while you are redirecting stderr to stdout");
+            }
+            return new OutputAsserts.Builder(this::stderr);
         }
 
-        public Builder stdout(Function<InputStream, OutputAsserts> stdoutAsserts) {
-            this.stdoutAsserts = stdoutAsserts;
-            return this;
-        }
-
-        public Builder stderr(Function<InputStream, OutputAsserts> stderrAsserts) {
-            this.stderrAsserts = stderrAsserts;
+        /**
+         * Enable the redirection of {@code stderr} to {@code stdout}
+         *
+         * @return this {@link Builder}
+         * @since  0.0.1
+         */
+        public Builder stderrToStdout() {
+            this.stderrToStdout |= true;
             return this;
         }
 
@@ -75,6 +92,16 @@ public class Expectations {
             return this;
         }
 
+        Builder stdout(Function<InputStream, OutputAsserts> stdoutAsserts) {
+            this.stdoutAsserts = stdoutAsserts;
+            return this;
+        }
+
+        Builder stderr(Function<InputStream, OutputAsserts> stderrAsserts) {
+            this.stderrAsserts = stderrAsserts;
+            return this;
+        }
+
         Expectations build() {
             final Function<InputStream, OutputAsserts> stdo;
             if (stdoutAsserts == null) {
@@ -83,7 +110,7 @@ public class Expectations {
             } else {
                 stdo = stdoutAsserts;
             }
-            if (stderrAsserts == null) {
+            if (stderrAsserts == null && !stderrToStdout) {
                 log.debug("Any output to stderr will cause an error because no consumer was specified for it");
                 stderrAsserts = stderr().lines().doesNotContainMatching(MATCH_ANY_PATTERN).parent().build();
             }
@@ -102,17 +129,5 @@ public class Expectations {
             return command.expect(this).start();
         }
 
-    }
-
-    public Function<InputStream, OutputAsserts> stdout() {
-        return stdout;
-    }
-
-    public Function<InputStream, OutputAsserts> stderr() {
-        return stderr;
-    }
-
-    public List<ExitCodeAssert> getExitCodeAsserts() {
-        return exitCodeAsserts;
     }
 }

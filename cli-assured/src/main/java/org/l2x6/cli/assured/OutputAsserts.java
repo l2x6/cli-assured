@@ -7,7 +7,6 @@ package org.l2x6.cli.assured;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.function.Function;
-import org.l2x6.cli.assured.Expectations.Builder;
 import org.l2x6.cli.assured.asserts.OutputAssert;
 
 public abstract class OutputAsserts extends Thread implements OutputAssert {
@@ -25,10 +24,6 @@ public abstract class OutputAsserts extends Thread implements OutputAssert {
 
     public void cancel() {
         this.cancelled = true;
-    }
-
-    public static Builder builder(Function<Function<InputStream, OutputAsserts>, Expectations.Builder> expectations) {
-        return new Builder(expectations);
     }
 
     public static class DummyOutputConsumer extends OutputAsserts {
@@ -66,7 +61,7 @@ public abstract class OutputAsserts extends Thread implements OutputAssert {
          * @return new {@link OutputLineAsserts.Builder}
          */
         public OutputLineAsserts.Builder lines() {
-            return OutputLineAsserts.builder(this);
+            return new OutputLineAsserts.Builder(this);
         }
 
         Builder createConsumer(Function<InputStream, OutputAsserts> cc) {

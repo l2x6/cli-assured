@@ -32,7 +32,6 @@ public class Command {
 
     private final Map<String, String> env;
     private final Path cd;
-    final boolean stderrToStdout;
     final String[] cmdArray;
     final String cmdArrayString;
     final Expectations expectations;
@@ -46,14 +45,12 @@ public class Command {
             List<String> arguments,
             Map<String, String> environment,
             Path cd,
-            boolean stderrToStdout,
             Expectations expectations) {
         this.cmdArray = asCmdArray(Objects.requireNonNull(executable, "executable"),
                 Objects.requireNonNull(arguments, "arguments"));
         this.env = Objects.requireNonNull(environment, "environment");
         this.cd = Objects.requireNonNull(cd, "cd");
         this.expectations = expectations;
-        this.stderrToStdout = stderrToStdout;
         this.cmdArrayString = Arrays.stream(cmdArray).collect(Collectors.joining(" "));
     }
 
@@ -65,6 +62,7 @@ public class Command {
      * @since  0.0.1
      */
     public CommandProcess start() {
+        final boolean stderrToStdout = expectations.stderr == null;
         log.info(
                 "Executing\n\n    cd {} && {}{}\n\nwith env {}",
                 cd,
@@ -137,7 +135,6 @@ public class Command {
         private List<String> args = new ArrayList<>();
         private Map<String, String> env = new LinkedHashMap<>();
         private Path cd;
-        private boolean stderrToStdout = false;
         private Expectations.Builder expectations;
 
         /**
@@ -271,29 +268,6 @@ public class Command {
         }
 
         /**
-         * Enable the redirection of {@code stderr} to {@code stdout}
-         *
-         * @return this {@link Builder}
-         * @since  0.0.1
-         */
-        public Builder stderrToStdout() {
-            return stderrToStdout(true);
-        }
-
-        /**
-         * Configure the redirection of {@code stderr} to {@code stdout}. The redirection is disabled by default.
-         *
-         * @param  stderrToStdout if {@code true} the redirection of {@code stderr} to {@code stdout} will be enabled; otherwise
-         *                        it will be disabled
-         * @return                this {@link Builder}
-         * @since                 0.0.1
-         */
-        public Builder stderrToStdout(boolean stderrToStdout) {
-            this.stderrToStdout = stderrToStdout;
-            return this;
-        }
-
-        /**
          * Set the given {@code workDirectory} to the undelying {@link Process}
          *
          * @param  workDirectory the work directory of the undelying {@link Process}
@@ -341,7 +315,6 @@ public class Command {
                     args,
                     env,
                     cd == null ? Paths.get(".").toAbsolutePath().normalize() : cd,
-                    stderrToStdout,
                     expectations.build());
             return cmd.start();
         }

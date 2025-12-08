@@ -30,10 +30,6 @@ public class OutputLineAsserts implements LineAssert {
         this.charset = Objects.requireNonNull(charset, "charset");
     }
 
-    public static Builder builder(OutputAsserts.Builder outputAsserts) {
-        return new Builder(outputAsserts);
-    }
-
     @Override
     public void assertSatisfied() {
         asserts.stream().forEach(LineAssert::assertSatisfied);

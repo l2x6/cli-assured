@@ -43,21 +43,26 @@ public class JavaTest {
     }
 
     @Test
-    void stderr() {
+    void stderrToStdout() {
 
         command("helloErr", "Joe")
                 .expect()
-                .stderr()
+                .stderrToStdout()
+                .stdout()
                 .lines()
                 .contains("Hello stderr Joe")
                 .start()
                 .awaitTermination()
                 .assertSuccess();
 
+    }
+
+    @Test
+    void stderr() {
+
         command("helloErr", "Joe")
-                .stderrToStdout()
                 .expect()
-                .stdout()
+                .stderr()
                 .lines()
                 .contains("Hello stderr Joe")
                 .start()

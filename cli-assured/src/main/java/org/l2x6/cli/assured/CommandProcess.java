@@ -5,7 +5,9 @@
 package org.l2x6.cli.assured;
 
 import java.io.Closeable;
+import java.io.InputStream;
 import java.time.Duration;
+import java.util.function.Function;
 import org.l2x6.cli.assured.asserts.OutputAssert;
 
 /**
@@ -30,12 +32,13 @@ public class CommandProcess implements Closeable {
         this.command = command;
         this.process = process;
 
-        out = command.expectations.stdout().apply(process.getInputStream());
+        out = command.expectations.stdout.apply(process.getInputStream());
 
-        if (command.stderrToStdout) {
+        final Function<InputStream, OutputAsserts> stde = command.expectations.stderr;
+        if (stde == null) {
             err = null;
         } else {
-            err = command.expectations.stderr().apply(process.getErrorStream());
+            err = stde.apply(process.getErrorStream());
         }
 
         this.shutDownHook = new Thread(new Runnable() {
