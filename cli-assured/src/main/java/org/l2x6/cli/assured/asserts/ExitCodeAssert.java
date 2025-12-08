@@ -14,7 +14,14 @@ import java.util.stream.Stream;
  * @since  0.0.1
  * @author <a href="https://github.com/ppalaga">Peter Palaga</a>
  */
-public interface ExitCodeAssert {
+public class ExitCodeAssert implements Assert {
+
+    private final int[] sortedCodes;
+    private int actualExitCode;
+
+    private ExitCodeAssert(int[] sortedCodes) {
+        this.sortedCodes = sortedCodes;
+    }
 
     /**
      * Assert that the actual exit code fulfills the expectations.
@@ -22,7 +29,9 @@ public interface ExitCodeAssert {
      * @param actualExitCode the actual exit code of a process
      * @since                0.0.1
      */
-    void assertSatisfied(int actualExitCode);
+    public void exitCode(int actualExitCode) {
+        this.actualExitCode = actualExitCode;
+    }
 
     /**
      * Assert that the process exits with the given {@code expectedExitCode}
@@ -31,32 +40,36 @@ public interface ExitCodeAssert {
      * @return                  a new {@link ExitCodeAssert} expecting the given {@code expectedExitCode}
      * @since                   0.0.1
      */
-    static ExitCodeAssert of(int expectedExitCode) {
-        return actualExitCode -> {
-            if (expectedExitCode != actualExitCode) {
-                throw new AssertionError("Expected exit code " + expectedExitCode + " but was " + actualExitCode);
-            }
-        };
+    public static ExitCodeAssert of(int expectedExitCode) {
+        return new ExitCodeAssert(new int[] { expectedExitCode });
     }
 
     /**
      * Assert that the process exits with any of the given {@code expectedExitCodes}
+     * )
      *
      * @param  expectedExitCodes the exit codes to assert
      * @return                   a new {@link ExitCodeAssert} expecting any of the given {@code expectedExitCodes}
      * @since                    0.0.1
      */
-    static ExitCodeAssert any(int... expectedExitCodes) {
+    public static ExitCodeAssert any(int... expectedExitCodes) {
         final int[] sortedCodes = new int[expectedExitCodes.length];
         System.arraycopy(expectedExitCodes, 0, sortedCodes, 0, expectedExitCodes.length);
         Arrays.sort(sortedCodes);
-        return actualExitCode -> {
-            if (Arrays.binarySearch(sortedCodes, actualExitCode) >= 0) {
-                throw new AssertionError("Expected any of exit codes "
-                        + Stream.of(sortedCodes).map(String::valueOf).collect(Collectors.joining(", ")) + " but was "
-                        + actualExitCode);
+        return new ExitCodeAssert(sortedCodes);
+    }
+
+    @Override
+    public void assertSatisfied() {
+        if (sortedCodes.length == 1) {
+            if (sortedCodes[0] != actualExitCode) {
+                throw new AssertionError("Expected exit code " + sortedCodes[0] + " but was " + actualExitCode);
             }
-        };
+        } else if (Arrays.binarySearch(sortedCodes, actualExitCode) >= 0) {
+            throw new AssertionError("Expected any of exit codes "
+                    + Stream.of(sortedCodes).map(String::valueOf).collect(Collectors.joining(", ")) + " but was "
+                    + actualExitCode);
+        }
     }
 
 }

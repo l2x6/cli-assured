@@ -21,7 +21,7 @@ import java.util.regex.Pattern;
  * @author <a href="https://github.com/ppalaga">Peter Palaga</a>
  * @since  0.0.1
  */
-public interface LineAssert extends OutputAssert {
+public interface LineAssert extends Assert {
 
     /**
      * Assert that the given actual {@code line} fulfills the expectations

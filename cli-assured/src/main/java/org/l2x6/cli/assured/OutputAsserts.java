@@ -7,9 +7,9 @@ package org.l2x6.cli.assured;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.function.Function;
-import org.l2x6.cli.assured.asserts.OutputAssert;
+import org.l2x6.cli.assured.asserts.Assert;
 
-public abstract class OutputAsserts extends Thread implements OutputAssert {
+public abstract class OutputAsserts extends Thread implements Assert {
     protected volatile boolean cancelled;
     protected IOException exception;
     protected final InputStream in;

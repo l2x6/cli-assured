@@ -8,7 +8,7 @@ import java.io.Closeable;
 import java.io.InputStream;
 import java.time.Duration;
 import java.util.function.Function;
-import org.l2x6.cli.assured.asserts.OutputAssert;
+import org.l2x6.cli.assured.asserts.Assert;
 
 /**
  * A wrapper around {@link Process} that manages its destroying and offers
@@ -176,8 +176,8 @@ public class CommandProcess implements Closeable {
                 joinAsserts());
     }
 
-    OutputAssert joinAsserts() {
-        return err == null ? out : OutputAssert.all(out, err);
+    Assert joinAsserts() {
+        return err == null ? out : Assert.all(out, err);
     }
 
 }

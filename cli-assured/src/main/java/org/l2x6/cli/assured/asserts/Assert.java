@@ -9,13 +9,13 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
-public interface OutputAssert {
+public interface Assert {
 
     void assertSatisfied();
 
-    static OutputAssert all(OutputAssert... asserts) {
-        final List<OutputAssert> copy = Collections.unmodifiableList(new ArrayList<>(Arrays.asList(asserts)));
-        return () -> copy.stream().forEach(OutputAssert::assertSatisfied);
+    static Assert all(Assert... asserts) {
+        final List<Assert> copy = Collections.unmodifiableList(new ArrayList<>(Arrays.asList(asserts)));
+        return () -> copy.stream().forEach(Assert::assertSatisfied);
     }
 
 }
