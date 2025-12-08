@@ -5,7 +5,7 @@
 package org.l2x6.cli.assured;
 
 import java.time.Duration;
-import org.l2x6.cli.assured.asserts.OutputAssert;
+import org.l2x6.cli.assured.asserts.Assert;
 
 /**
  * A result of a {@link CommandProcess}'s execution.
@@ -18,9 +18,9 @@ public class CommandResult {
     private final int exitCode;
     private final Duration duration;
     private final Throwable exception;
-    private final OutputAssert outputAssert;
+    private final Assert outputAssert;
 
-    CommandResult(Command command, int exitCode, Duration runtimeMs, Throwable exception, OutputAssert outputAssert) {
+    CommandResult(Command command, int exitCode, Duration runtimeMs, Throwable exception, Assert outputAssert) {
         super();
         this.command = command;
         this.exitCode = exitCode;
