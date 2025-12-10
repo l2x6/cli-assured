@@ -5,15 +5,18 @@
 package org.l2x6.cli.assured.test;
 
 import java.io.IOException;
+import java.io.OutputStream;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.StandardOpenOption;
 import java.util.UUID;
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.l2x6.cli.assured.CliAssured;
 import org.l2x6.cli.assured.Command;
-import org.l2x6.cli.assured.OutputLineAsserts;
+import org.l2x6.cli.assured.OutputStreamAsserts;
 import org.l2x6.cli.assured.test.app.TestApp;
 
 public class JavaTest {
@@ -265,14 +268,49 @@ public class JavaTest {
         Assertions.assertThat(cd.resolve("hello.txt")).isRegularFile().hasContent("Hello Dolly");
     }
 
-    static OutputLineAsserts.Builder run(String... args) {
+    @Test
+    void redirect() {
+
+        Path out = Paths.get("target/" + JavaTest.class.getSimpleName() + ".redirect-" + UUID.randomUUID() + ".txt");
+        run("hello", "Joe")
+                .redirect(out)
+                .start()
+                .awaitTermination()
+                .assertSuccess();
+        Assertions.assertThat(out).content(StandardCharsets.UTF_8).isEqualTo("Hello Joe\n");
+
+    }
+
+    @Test
+    void redirectStream() throws IOException {
+
+        /* Append the output of two command to a single file
+         * Thus making sure that we do not close the underlying stream */
+        Path out = Paths.get("target/" + JavaTest.class.getSimpleName() + ".redirectStream-" + UUID.randomUUID() + ".txt");
+        try (OutputStream os = Files.newOutputStream(out, StandardOpenOption.CREATE, StandardOpenOption.APPEND)) {
+            run("hello", "Joe")
+                    .redirect(os)
+                    .start()
+                    .awaitTermination()
+                    .assertSuccess();
+            run("hello", "Dolly")
+                    .redirect(os)
+                    .start()
+                    .awaitTermination()
+                    .assertSuccess();
+        }
+        Assertions.assertThat(out).content(StandardCharsets.UTF_8).isEqualTo("Hello Joe\nHello Dolly\n");
+
+    }
+
+    static OutputStreamAsserts.Builder run(String... args) {
         return command(args)
                 .expect()
                 .stdout()
                 .lines();
     }
 
-    static OutputLineAsserts.Builder runErr(String... args) {
+    static OutputStreamAsserts.Builder runErr(String... args) {
         return command(args)
                 .expect()
                 .stderr()

@@ -58,10 +58,10 @@ public abstract class OutputAsserts extends Thread implements Assert {
         }
 
         /**
-         * @return new {@link OutputLineAsserts.Builder}
+         * @return new {@link OutputStreamAsserts.Builder}
          */
-        public OutputLineAsserts.Builder lines() {
-            return new OutputLineAsserts.Builder(this);
+        public OutputStreamAsserts.Builder lines() {
+            return new OutputStreamAsserts.Builder(this);
         }
 
         Builder createConsumer(Function<InputStream, OutputAsserts> cc) {
@@ -92,10 +92,22 @@ public abstract class OutputAsserts extends Thread implements Assert {
             return expectations.apply(this.build());
         }
 
+        /**
+         * A shorthand for {@link #parent()}..{@link Expectations.Builder#start() start()}
+         *
+         * @return a started {@link CommandProcess}
+         * @since  0.0.1
+         */
         public CommandProcess start() {
             return parent().start();
         }
 
+        /**
+         * A shorthand for {@link #parent()}..{@link Expectations.Builder#stderr() stderr()}
+         *
+         * @return a new {@link OutputAsserts.Builder} to configure assertions for stderr
+         * @since  0.0.1
+         */
         public Builder stderr() {
             return parent().stderr();
         }

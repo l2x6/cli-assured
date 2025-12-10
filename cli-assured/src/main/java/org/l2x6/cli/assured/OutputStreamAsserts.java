@@ -5,29 +5,38 @@
 package org.l2x6.cli.assured;
 
 import java.io.BufferedReader;
+import java.io.FilterInputStream;
+import java.io.FilterOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.OutputStream;
+import java.io.UncheckedIOException;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
+import java.util.function.Supplier;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import org.l2x6.cli.assured.asserts.LineAssert;
 
-public class OutputLineAsserts implements LineAssert {
+public class OutputStreamAsserts implements LineAssert {
 
     private final List<LineAssert> asserts;
     private final Charset charset;
+    private final Supplier<OutputStream> redirect;
 
-    OutputLineAsserts(List<LineAssert> asserts, Charset charset) {
+    OutputStreamAsserts(List<LineAssert> asserts, Charset charset, Supplier<OutputStream> redirect) {
         this.asserts = Objects.requireNonNull(asserts, "asserts");
         this.charset = Objects.requireNonNull(charset, "charset");
+        this.redirect = redirect;
     }
 
     @Override
@@ -36,7 +45,7 @@ public class OutputLineAsserts implements LineAssert {
     }
 
     @Override
-    public OutputLineAsserts line(String line) {
+    public OutputStreamAsserts line(String line) {
         asserts.stream().forEach(a -> a.line(line));
         return this;
     }
@@ -45,24 +54,50 @@ public class OutputLineAsserts implements LineAssert {
         return charset;
     }
 
-    public static class LinesConsumer extends OutputAsserts {
-        private final OutputLineAsserts lineAsserts;
+    public Supplier<OutputStream> redirect() {
+        return redirect;
+    }
 
-        LinesConsumer(InputStream inputStream, OutputLineAsserts lineAsserts) {
+    public boolean hasLineAsserts() {
+        return asserts.size() > 0;
+    }
+
+    public static class LinesConsumer extends OutputAsserts {
+        private final OutputStreamAsserts lineAsserts;
+
+        LinesConsumer(InputStream inputStream, OutputStreamAsserts lineAsserts) {
             super(inputStream);
             this.lineAsserts = lineAsserts;
         }
 
         @Override
         public void run() {
-            try (BufferedReader r = new BufferedReader(new InputStreamReader(in, lineAsserts.charset()))) {
-                String line;
-                while (!cancelled && (line = r.readLine()) != null) {
-                    lineAsserts.line(line);
+            if (lineAsserts.hasLineAsserts()) {
+                try (BufferedReader r = new BufferedReader(
+                        new InputStreamReader(redirect(in, lineAsserts.redirect()), lineAsserts.charset()))) {
+                    String line;
+                    while (!cancelled && (line = r.readLine()) != null) {
+                        lineAsserts.line(line);
+                    }
+                } catch (IOException e) {
+                    exception = e;
                 }
-            } catch (IOException e) {
-                exception = e;
+            } else {
+                try (InputStream wrappedIn = redirect(in, lineAsserts.redirect())) {
+                    byte[] buff = new byte[8192];
+                    while (wrappedIn.read(buff) > 0) {
+                    }
+                } catch (IOException e) {
+                    exception = e;
+                }
             }
+        }
+
+        static InputStream redirect(InputStream in, Supplier<OutputStream> redirect) {
+            if (redirect == null) {
+                return in;
+            }
+            return new RedirectInputStream(in, redirect.get());
         }
 
         public void assertSatisfied() {
@@ -87,12 +122,63 @@ public class OutputLineAsserts implements LineAssert {
 
     }
 
+    static class RedirectInputStream extends FilterInputStream {
+
+        private final OutputStream out;
+
+        protected RedirectInputStream(InputStream in, OutputStream out) {
+            super(in);
+            this.out = out;
+        }
+
+        @Override
+        public int read() throws IOException {
+            final int c = super.read();
+            if (c >= 0) {
+                out.write(c);
+            }
+            return c;
+        }
+
+        @Override
+        public int read(byte[] b, int off, int len) throws IOException {
+            final int cnt = super.read(b, off, len);
+            if (cnt > 0) {
+                out.write(b, off, cnt);
+            }
+            return cnt;
+        }
+
+        @Override
+        public void close() throws IOException {
+            try {
+                super.close();
+            } finally {
+                out.close();
+            }
+        }
+
+    }
+
+    static class NonClosingOut extends FilterOutputStream {
+
+        public NonClosingOut(OutputStream out) {
+            super(out);
+        }
+
+        @Override
+        public void close() throws IOException {
+            /* The caller is responsible for closing */
+        }
+    }
+
     public static class Builder {
 
         private final OutputAsserts.Builder outputAsserts;
 
         private List<LineAssert> asserts = new ArrayList<>();
         private Charset charset = StandardCharsets.UTF_8;
+        private Supplier<OutputStream> redirect;
 
         Builder(OutputAsserts.Builder outputAsserts) {
             this.outputAsserts = outputAsserts;
@@ -302,16 +388,48 @@ public class OutputLineAsserts implements LineAssert {
         }
 
         /**
+         * Redirect the output to the given {@code file}.
+         *
+         * @param  file where to store the output of the underlying command
+         * @return      this {@link Builder}
+         * @since       0.0.1
+         */
+        public Builder redirect(Path file) {
+            this.redirect = () -> {
+                try {
+                    return Files.newOutputStream(file);
+                } catch (IOException e) {
+                    throw new UncheckedIOException("Could not open " + file + " for writing", e);
+                }
+            };
+            return this;
+        }
+
+        /**
+         * Redirect the output to the given {@code outputStream}.
+         * Note that CLI Assured will not close the given {@code outputStream}.
+         * The caller should take care to do so.
+         *
+         * @param  outputStream where to redirect the output of the underlying command
+         * @return              this {@link Builder}
+         * @since               0.0.1
+         */
+        public Builder redirect(OutputStream outputStream) {
+            this.redirect = () -> new NonClosingOut(outputStream);
+            return this;
+        }
+
+        /**
          * @return the parent {@link OutputAsserts.Builder}
          */
         public OutputAsserts.Builder parent() {
             return outputAsserts.createConsumer(in -> new LinesConsumer(in, this.build()));
         }
 
-        OutputLineAsserts build() {
+        OutputStreamAsserts build() {
             List<LineAssert> as = Collections.unmodifiableList(asserts);
             this.asserts = null;
-            return new OutputLineAsserts(as, charset);
+            return new OutputStreamAsserts(as, charset, redirect);
         }
 
         /**
