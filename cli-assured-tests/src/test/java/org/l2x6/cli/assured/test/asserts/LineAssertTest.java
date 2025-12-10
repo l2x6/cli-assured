@@ -5,6 +5,7 @@
 package org.l2x6.cli.assured.test.asserts;
 
 import java.util.Arrays;
+import java.util.Locale;
 import java.util.regex.Pattern;
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.Test;
@@ -82,6 +83,40 @@ public class LineAssertTest {
                 .isInstanceOf(AssertionError.class)
                 .hasMessage(
                         "Expected no lines containing\n\n    oo\n\nto occur, but some of the substrings occur in lines\n\n    foo\n\n");
+
+    }
+
+    @Test
+    void hasLinesContainingCaseInsensitive() {
+        LineAssert
+                .hasLinesContainingCaseInsensitive(Arrays.asList("oo", "ba", "fo"), Locale.US)
+                .line("fOO")
+                .line("Bar")
+                .assertSatisfied();
+
+        Assertions.assertThatThrownBy(LineAssert.hasLinesContainingCaseInsensitive(Arrays.asList("foo", "bar"), Locale.US)
+                .line("ma")
+                .line("az")::assertSatisfied)
+                .isInstanceOf(AssertionError.class)
+                .hasMessage(
+                        "Expected lines containing using case insensitive comparison\n\n    foo\n    bar\n\nto occur, but the following substrings did not occur:\n\n    foo\n    bar\n\n");
+
+    }
+
+    @Test
+    void doesNotHaveLinesContainingCaseInsensitive() {
+        LineAssert
+                .doesNotHaveLinesContainingCaseInsensitive(Arrays.asList("baz", "bam"), Locale.US)
+                .line("ma")
+                .line("az")
+                .assertSatisfied();
+
+        Assertions.assertThatThrownBy(LineAssert.doesNotHaveLinesContainingCaseInsensitive(Arrays.asList("oo"), Locale.US)
+                .line("maz")
+                .line("FOO")::assertSatisfied)
+                .isInstanceOf(AssertionError.class)
+                .hasMessage(
+                        "Expected no lines containing using case insensitive comparison\n\n    oo\n\nto occur, but some of the substrings occur in lines\n\n    foo\n\n");
 
     }
 

@@ -11,6 +11,7 @@ import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
@@ -20,7 +21,7 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 /**
- * An assertion on a line of a command output.
+ * An assertion on a sequence of lines of a command output.
  *
  * @author <a href="https://github.com/ppalaga">Peter Palaga</a>
  * @since  0.0.1
@@ -28,7 +29,8 @@ import java.util.stream.Collectors;
 public interface LineAssert extends Assert {
 
     /**
-     * Assert that the given actual {@code line} fulfills the expectations
+     * Check the actual output {@code line}; throw any {@link AssertionError}s from {@link #assertSatisfied()} rather than
+     * from this method.
      *
      * @param line
      * @since      0.0.1
@@ -100,8 +102,8 @@ public interface LineAssert extends Assert {
      * @return            a new {@link LineAssert}
      * @since             0.0.1
      */
-    static LineAssert doesNotHaveLinesContaining(Collection<String> unexpectedSubstrings) {
-        final List<String> checks = Collections.unmodifiableList(new ArrayList<>(unexpectedSubstrings));
+    static LineAssert doesNotHaveLinesContaining(Collection<String> substrings) {
+        final List<String> checks = Collections.unmodifiableList(new ArrayList<>(substrings));
         return new LinesAssert<String, String>(
                 checks,
                 new LinkedHashSet<>(),
@@ -117,13 +119,64 @@ public interface LineAssert extends Assert {
     }
 
     /**
+     * Assert that lines containing the given {@code substrings} (using case insensitive comparison) are present in the
+     * underlying output stream among other lines in any order.
+     *
+     * @param  substrings the substrings (must be in lower case already) to look for in the associated output stream
+     * @return            a new {@link LineAssert}
+     * @since             0.0.1
+     */
+    static LineAssert hasLinesContainingCaseInsensitive(Collection<String> substrings, Locale locale) {
+        return new LinesAssert<String, String>(
+                Collections.unmodifiableList(new ArrayList<>(substrings)),
+                new LinkedHashSet<>(substrings),
+                (line, hits) -> {
+                    line = line.toLowerCase(locale);
+                    for (Iterator<String> i = hits.iterator(); i.hasNext();) {
+                        String substr = i.next();
+                        if (line.contains(substr)) {
+                            i.remove();
+                        }
+                    }
+                },
+                "Expected lines containing using case insensitive comparison\n\n    %s\n\nto occur, but the following substrings did not occur:\n\n    %s\n\n");
+    }
+
+    /**
+     * Assert that lines containing the given {@code substrings} (using case insensitive comparison) are not present in
+     * the underlying output stream.
+     *
+     * @param  substrings the substrings (must be in lower case already) to look for in the associated output stream
+     * @param  locale     the locale to use to transform to lower case
+     * @return            a new {@link LineAssert}
+     * @since             0.0.1
+     */
+    static LineAssert doesNotHaveLinesContainingCaseInsensitive(Collection<String> substrings, Locale locale) {
+        final List<String> checks = Collections.unmodifiableList(new ArrayList<>(substrings));
+        return new LinesAssert<String, String>(
+                checks,
+                new LinkedHashSet<>(),
+                (line, hits) -> {
+                    line = line.toLowerCase(locale);
+                    for (Iterator<String> i = checks.iterator(); i.hasNext();) {
+                        String substr = i.next();
+                        if (line.contains(substr)) {
+                            hits.add(line);
+                        }
+                    }
+                },
+                "Expected no lines containing using case insensitive comparison\n\n    %s\n\nto occur, but some of the substrings occur in lines\n\n    %s\n\n");
+    }
+
+    /**
      * Assert that lines matching the given regular expressions are present in the underlying output stream among other
      * lines in any order.
      * The regular expression is evaluated using {@link Matcher#find()} rather than {@link Matcher#matches()}
      *
-     * @param  regex the regular expressions to look for in the associated output stream
-     * @return       a new {@link LineAssert}
-     * @since        0.0.1
+     * @param  regex  the regular expressions to look for in the associated output stream
+     * @param  locale the locale to use to transform to lower case
+     * @return        a new {@link LineAssert}
+     * @since         0.0.1
      */
     static LineAssert hasLinesMatchingPatterns(Collection<Pattern> regex) {
         return LinesAssert.containsMatching(regex);

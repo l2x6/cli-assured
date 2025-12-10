@@ -18,11 +18,15 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.Locale;
 import java.util.Objects;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+import org.l2x6.cli.assured.asserts.Assert;
 import org.l2x6.cli.assured.asserts.LineAssert;
 
 public class StreamExpectations implements LineAssert {
@@ -70,6 +74,34 @@ public class StreamExpectations implements LineAssert {
         private List<LineAssert> asserts = new ArrayList<>();
         private Charset charset = StandardCharsets.UTF_8;
         private Supplier<OutputStream> redirect;
+
+        /**
+         * Assert that the given {@link LineAssert}s are satisfied.
+         *
+         * @param  lines the whole lines to look for
+         * @return       this {@link Builder}
+         * @since        0.0.1
+         */
+        public Builder linesSatisfy(LineAssert... asserts) {
+            for (LineAssert a : asserts) {
+                this.asserts.add(a);
+            }
+            return this;
+        }
+
+        /**
+         * Assert that the given {@link LineAssert}s are satisfied.
+         *
+         * @param  lines the whole lines to look for
+         * @return       this {@link Builder}
+         * @since        0.0.1
+         */
+        public Builder linesSatisfy(Collection<LineAssert> asserts) {
+            for (LineAssert a : asserts) {
+                this.asserts.add(a);
+            }
+            return this;
+        }
 
         /**
          * Assert that the given lines are present in the underlying output stream among other lines in any order.
@@ -178,6 +210,64 @@ public class StreamExpectations implements LineAssert {
          */
         public Builder doesNotHaveLinesContaining(Collection<String> substrings) {
             asserts.add(LineAssert.doesNotHaveLinesContaining(substrings));
+            return this;
+        }
+
+        /**
+         * Assert that lines containing the given {@code substrings} (using case insensitive comparison) are present in the
+         * underlying output stream among other
+         * lines in any order.
+         *
+         * @param  substrings the substrings to look for in the associated output stream
+         * @return            this {@link Builder}
+         * @since             0.0.1
+         */
+        public Builder hasLinesContainingCaseInsensitive(String... substrings) {
+            asserts.add(LineAssert.hasLinesContainingCaseInsensitive(
+                    Stream.of(substrings).map(s -> s.toLowerCase(Locale.US)).collect(Collectors.toList()), Locale.US));
+            return this;
+        }
+
+        /**
+         * Assert that lines containing the given {@code substrings} (using case insensitive comparison) are present in the
+         * underlying output stream among other
+         * lines in any order.
+         *
+         * @param  substrings the substrings to look for in the associated output stream
+         * @return            this {@link Builder}
+         * @since             0.0.1
+         */
+        public Builder hasLinesContainingCaseInsensitive(Collection<String> substrings) {
+            asserts.add(LineAssert.hasLinesContainingCaseInsensitive(
+                    substrings.stream().map(s -> s.toLowerCase(Locale.US)).collect(Collectors.toList()), Locale.US));
+            return this;
+        }
+
+        /**
+         * Assert that lines containing the given {@code substrings} (using case insensitive comparison) are not present in the
+         * underlying output stream.
+         *
+         * @param  substrings the substrings to look for in the associated output stream
+         * @return            this {@link Builder}
+         * @since             0.0.1
+         */
+        public Builder doesNotHaveLinesContainingCaseInsensitive(String... substrings) {
+            asserts.add(LineAssert.doesNotHaveLinesContainingCaseInsensitive(
+                    Stream.of(substrings).map(s -> s.toLowerCase(Locale.US)).collect(Collectors.toList()), Locale.US));
+            return this;
+        }
+
+        /**
+         * Assert that lines containing the given {@code substrings} (using case insensitive comparison) are not present in the
+         * underlying output stream.
+         *
+         * @param  substrings the substrings to look for in the associated output stream
+         * @return            this {@link Builder}
+         * @since             0.0.1
+         */
+        public Builder doesNotHaveLinesContainingCaseInsensitive(Collection<String> substrings) {
+            asserts.add(LineAssert.doesNotHaveLinesContainingCaseInsensitive(
+                    substrings.stream().map(s -> s.toLowerCase(Locale.US)).collect(Collectors.toList()), Locale.US));
             return this;
         }
 
