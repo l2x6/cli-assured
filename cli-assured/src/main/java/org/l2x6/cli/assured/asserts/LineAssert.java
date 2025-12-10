@@ -31,10 +31,11 @@ import java.util.stream.Collectors;
 public interface LineAssert extends Assert {
 
     /**
-     * Check the actual output {@code line}; throw any {@link AssertionError}s from {@link #assertSatisfied()} rather than
+     * Check the actual output {@code line} and throw any {@link AssertionError}s from {@link #assertSatisfied()} rather
+     * than
      * from this method.
      *
-     * @param line
+     * @param line the line text without any trailing newline character to check
      * @since      0.0.1
      */
     LineAssert line(String line);

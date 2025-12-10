@@ -17,14 +17,25 @@ public class CommandResult {
     private final Command command;
     private final int exitCode;
     private final Duration duration;
+    private final long byteCountStdout;
+    private final long byteCountStderr;
     private final Throwable exception;
     private final Assert outputAssert;
 
-    CommandResult(Command command, int exitCode, Duration runtimeMs, Throwable exception, Assert outputAssert) {
+    CommandResult(
+            Command command,
+            int exitCode,
+            Duration runtimeMs,
+            long byteCountStdout,
+            long byteCountStderr,
+            Throwable exception,
+            Assert outputAssert) {
         super();
         this.command = command;
         this.exitCode = exitCode;
         this.duration = runtimeMs;
+        this.byteCountStdout = byteCountStdout;
+        this.byteCountStderr = byteCountStderr;
         this.exception = exception;
         this.outputAssert = outputAssert;
     }
@@ -80,6 +91,22 @@ public class CommandResult {
      */
     public Duration durationMs() {
         return duration;
+    }
+
+    /**
+     * @return the number of bytes produced on {@code stdout}
+     * @since  0.0.1
+     */
+    public long byteCountStdout() {
+        return byteCountStdout;
+    }
+
+    /**
+     * @return the number of bytes produced on {@code stderr}
+     * @since  0.0.1
+     */
+    public long byteCountStderr() {
+        return byteCountStderr;
     }
 
 }

@@ -16,6 +16,7 @@ import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.l2x6.cli.assured.CliAssured;
 import org.l2x6.cli.assured.Command;
+import org.l2x6.cli.assured.CommandResult;
 import org.l2x6.cli.assured.StreamExpectations;
 import org.l2x6.cli.assured.test.app.TestApp;
 
@@ -270,7 +271,7 @@ public class JavaTest {
                 .start()
                 .awaitTermination()
                 .assertSuccess();
-        Assertions.assertThat(out).content(StandardCharsets.UTF_8).isEqualTo("Hello Joe\n");
+        Assertions.assertThat(out).content(StandardCharsets.UTF_8).matches("^Hello Joe\r?\n$");
 
     }
 
@@ -292,7 +293,84 @@ public class JavaTest {
                     .awaitTermination()
                     .assertSuccess();
         }
-        Assertions.assertThat(out).content(StandardCharsets.UTF_8).isEqualTo("Hello Joe\nHello Dolly\n");
+        Assertions.assertThat(out).content(StandardCharsets.UTF_8)
+                .matches("^Hello Joe\r?\nHello Dolly\r?\n$");
+
+    }
+
+    @Test
+    void exitCode() throws IOException {
+
+        {
+            CommandResult result = run("hello", "Joe")
+                    .hasLines("Hello Joe")
+                    .exitCode(0)
+                    .start()
+                    .awaitTermination()
+                    .assertSuccess();
+            Assertions.assertThat(result.exitCode()).isEqualTo(0);
+        }
+
+        {
+            CommandResult result = run("exitCode", "1")
+                    .exitCode(1)
+                    .start()
+                    .awaitTermination()
+                    .assertSuccess();
+            Assertions.assertThat(result.exitCode()).isEqualTo(1);
+        }
+        {
+            CommandResult result = run("exitCode", "1")
+                    .start()
+                    .awaitTermination();
+
+            Assertions.assertThatThrownBy(result::assertSuccess).isInstanceOf(AssertionError.class)
+                    .hasMessage("Expected exit code 0 but was 1");
+
+            Assertions.assertThat(result.exitCode()).isEqualTo(1);
+        }
+
+    }
+
+    @Test
+    void byteCount() throws IOException {
+
+        {
+            CommandResult result = run("hello", "Joe")
+                    .hasLines("Hello Joe")
+                    .hasByteCount(cnt -> cnt == 10 || cnt == 11, "Expected 10 or 11 bytes but found %d bytes")
+                    .start()
+                    .awaitTermination()
+                    .assertSuccess();
+            Assertions.assertThat(result.byteCountStdout()).isBetween(10L, 11L);
+        }
+
+        {
+            CommandResult result = run("hello", "Joe")
+                    .hasLines("Hello Joe")
+                    .hasByteCount(20)
+                    .start()
+                    .awaitTermination();
+
+            Assertions.assertThatThrownBy(result::assertSuccess).isInstanceOf(AssertionError.class)
+                    .hasMessageMatching("Expected 20 bytes but found 1[01] bytes");
+
+            Assertions.assertThat(result.byteCountStdout())
+                    .isBetween(10L, 11L); // it is 10 on Linux and 11 on Windows
+        }
+
+        {
+            CommandResult result = run("hello", "Joel")
+                    .hasLines("Hello Joel")
+                    .hasByteCount(cnt -> cnt > 20, "Expected bytes > 20 but found %d bytes")
+                    .start()
+                    .awaitTermination();
+
+            Assertions.assertThatThrownBy(result::assertSuccess).isInstanceOf(AssertionError.class)
+                    .hasMessageMatching("Expected bytes > 20 but found 1[1-2] bytes");
+
+            Assertions.assertThat(result.byteCountStdout()).isBetween(11L, 12L);
+        }
 
     }
 

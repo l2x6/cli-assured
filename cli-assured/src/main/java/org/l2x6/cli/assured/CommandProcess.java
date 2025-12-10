@@ -33,12 +33,14 @@ public class CommandProcess implements Closeable {
         this.process = process;
 
         out = command.expectations.stdout.apply(process.getInputStream());
+        out.start();
 
         final Function<InputStream, OutputConsumer> stde = command.expectations.stderr;
         if (stde == null) {
             err = null;
         } else {
             err = stde.apply(process.getErrorStream());
+            err.start();
         }
 
         this.shutDownHook = new Thread(new Runnable() {
@@ -145,6 +147,8 @@ public class CommandProcess implements Closeable {
                 command,
                 -1,
                 Duration.ofMillis(System.currentTimeMillis() - startMillisTime),
+                out.byteCount(),
+                err.byteCount(),
                 new TimeoutAssertionError(
                         String.format("Command has not terminated within %d ms: %s", timeoutMs, command.cmdArrayString)),
                 joinAsserts());
@@ -168,16 +172,20 @@ public class CommandProcess implements Closeable {
             throw new RuntimeException("Interrupted", e);
         }
 
+        command.expectations.exitCodeAssert.exitCode(exitCode);
         return new CommandResult(
                 command,
                 exitCode,
                 Duration.ofMillis(System.currentTimeMillis() - startMillisTime),
+                out.byteCount(),
+                err != null ? err.byteCount() : 0,
                 null,
                 joinAsserts());
     }
 
     Assert joinAsserts() {
-        return err == null ? out : Assert.all(out, err);
+        return err == null ? Assert.all(out, command.expectations.exitCodeAssert)
+                : Assert.all(out, err, command.expectations.exitCodeAssert);
     }
 
 }
