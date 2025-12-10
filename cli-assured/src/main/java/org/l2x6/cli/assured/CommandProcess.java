@@ -22,8 +22,8 @@ public class CommandProcess implements Closeable {
     private final Command command;
     private final Process process;
     private final Thread shutDownHook;
-    private final OutputAsserts out;
-    private final OutputAsserts err;
+    private final OutputConsumer out;
+    private final OutputConsumer err;
 
     private volatile boolean closed = false;
 
@@ -34,7 +34,7 @@ public class CommandProcess implements Closeable {
 
         out = command.expectations.stdout.apply(process.getInputStream());
 
-        final Function<InputStream, OutputAsserts> stde = command.expectations.stderr;
+        final Function<InputStream, OutputConsumer> stde = command.expectations.stderr;
         if (stde == null) {
             err = null;
         } else {
@@ -61,7 +61,7 @@ public class CommandProcess implements Closeable {
     }
 
     /**
-     * Calls {@link OutputAsserts#cancel()} on both {@link #out} and {@link #err} and kills the underlying process.
+     * Calls {@link OutputConsumer#cancel()} on both {@link #out} and {@link #err} and kills the underlying process.
      *
      * @param forcibly if {@code true} will call {@link Process#destroyForcibly()}; otherwise will call
      *                 {@link Process#destroy()}

@@ -9,12 +9,12 @@ import java.io.InputStream;
 import java.util.function.Function;
 import org.l2x6.cli.assured.asserts.Assert;
 
-public abstract class OutputAsserts extends Thread implements Assert {
+public abstract class OutputConsumer extends Thread implements Assert {
     protected volatile boolean cancelled;
     protected IOException exception;
     protected final InputStream in;
 
-    OutputAsserts(InputStream in) {
+    OutputConsumer(InputStream in) {
         this.in = in;
         start();
     }
@@ -26,7 +26,7 @@ public abstract class OutputAsserts extends Thread implements Assert {
         this.cancelled = true;
     }
 
-    public static class DevNull extends OutputAsserts {
+    public static class DevNull extends OutputConsumer {
 
         public DevNull(InputStream in) {
             super(in);
@@ -50,10 +50,10 @@ public abstract class OutputAsserts extends Thread implements Assert {
     }
 
     public static class Builder {
-        private final Function<Function<InputStream, OutputAsserts>, Expectations.Builder> expectations;
-        private Function<InputStream, OutputAsserts> createConsumer;
+        private final Function<Function<InputStream, OutputConsumer>, Expectations.Builder> expectations;
+        private Function<InputStream, OutputConsumer> createConsumer;
 
-        Builder(Function<Function<InputStream, OutputAsserts>, Expectations.Builder> expectations) {
+        Builder(Function<Function<InputStream, OutputConsumer>, Expectations.Builder> expectations) {
             this.expectations = expectations;
         }
 
@@ -64,7 +64,7 @@ public abstract class OutputAsserts extends Thread implements Assert {
             return new OutputStreamAsserts.Builder(this);
         }
 
-        Builder createConsumer(Function<InputStream, OutputAsserts> cc) {
+        Builder createConsumer(Function<InputStream, OutputConsumer> cc) {
             if (createConsumer != null) {
                 // TODO: better error message; explain that lines() or the possible future alternatives can be called only once
                 throw new IllegalStateException("Cannot create multiple Output consumers");
@@ -77,12 +77,12 @@ public abstract class OutputAsserts extends Thread implements Assert {
             return parent().exitCode(exitCodes).start();
         }
 
-        Function<InputStream, OutputAsserts> build() {
+        Function<InputStream, OutputConsumer> build() {
             return createConsumer;
         }
 
         /**
-         * Create a new {@link OutputAsserts} out of this {@link Builder} and set it on the parent
+         * Create a new {@link OutputConsumer} out of this {@link Builder} and set it on the parent
          * {@link Expectations.Builder}
          *
          * @return {@link Expectations.Builder}
@@ -105,7 +105,7 @@ public abstract class OutputAsserts extends Thread implements Assert {
         /**
          * A shorthand for {@link #parent()}..{@link Expectations.Builder#stderr() stderr()}
          *
-         * @return a new {@link OutputAsserts.Builder} to configure assertions for stderr
+         * @return a new {@link OutputConsumer.Builder} to configure assertions for stderr
          * @since  0.0.1
          */
         public Builder stderr() {

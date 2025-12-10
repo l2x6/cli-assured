@@ -62,10 +62,10 @@ public class OutputStreamAsserts implements LineAssert {
         return asserts.size() > 0;
     }
 
-    public static class LinesConsumer extends OutputAsserts {
+    public static class OutputAsserts extends OutputConsumer {
         private final OutputStreamAsserts lineAsserts;
 
-        LinesConsumer(InputStream inputStream, OutputStreamAsserts lineAsserts) {
+        OutputAsserts(InputStream inputStream, OutputStreamAsserts lineAsserts) {
             super(inputStream);
             this.lineAsserts = lineAsserts;
         }
@@ -174,13 +174,13 @@ public class OutputStreamAsserts implements LineAssert {
 
     public static class Builder {
 
-        private final OutputAsserts.Builder outputAsserts;
+        private final OutputConsumer.Builder outputAsserts;
 
         private List<LineAssert> asserts = new ArrayList<>();
         private Charset charset = StandardCharsets.UTF_8;
         private Supplier<OutputStream> redirect;
 
-        Builder(OutputAsserts.Builder outputAsserts) {
+        Builder(OutputConsumer.Builder outputAsserts) {
             this.outputAsserts = outputAsserts;
         }
 
@@ -420,10 +420,10 @@ public class OutputStreamAsserts implements LineAssert {
         }
 
         /**
-         * @return the parent {@link OutputAsserts.Builder}
+         * @return the parent {@link OutputConsumer.Builder}
          */
-        public OutputAsserts.Builder parent() {
-            return outputAsserts.createConsumer(in -> new LinesConsumer(in, this.build()));
+        public OutputConsumer.Builder parent() {
+            return outputAsserts.createConsumer(in -> new OutputAsserts(in, this.build()));
         }
 
         OutputStreamAsserts build() {
@@ -444,7 +444,7 @@ public class OutputStreamAsserts implements LineAssert {
             return parent().start();
         }
 
-        public OutputAsserts.Builder stderr() {
+        public OutputConsumer.Builder stderr() {
             return parent().stderr();
         }
 

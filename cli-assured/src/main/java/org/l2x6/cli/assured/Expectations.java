@@ -11,7 +11,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.function.Function;
 import java.util.regex.Pattern;
-import org.l2x6.cli.assured.OutputAsserts.DevNull;
+import org.l2x6.cli.assured.OutputConsumer.DevNull;
 import org.l2x6.cli.assured.asserts.ExitCodeAssert;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -24,13 +24,13 @@ import org.slf4j.LoggerFactory;
  */
 public class Expectations {
     private static final Logger log = LoggerFactory.getLogger(Expectations.class);
-    final Function<InputStream, OutputAsserts> stdout;
-    final Function<InputStream, OutputAsserts> stderr;
+    final Function<InputStream, OutputConsumer> stdout;
+    final Function<InputStream, OutputConsumer> stderr;
     final List<ExitCodeAssert> exitCodeAsserts;
 
     Expectations(
-            Function<InputStream, OutputAsserts> stdout,
-            Function<InputStream, OutputAsserts> stderr,
+            Function<InputStream, OutputConsumer> stdout,
+            Function<InputStream, OutputConsumer> stderr,
             List<ExitCodeAssert> exitCodeAsserts) {
         this.stdout = Objects.requireNonNull(stdout, "stdout");
         this.stderr = stderr;
@@ -41,8 +41,8 @@ public class Expectations {
         private static final Pattern MATCH_ANY_PATTERN = Pattern.compile(".*");
 
         private final Command.Builder command;
-        private Function<InputStream, OutputAsserts> stdoutAsserts;
-        private Function<InputStream, OutputAsserts> stderrAsserts;
+        private Function<InputStream, OutputConsumer> stdoutAsserts;
+        private Function<InputStream, OutputConsumer> stderrAsserts;
         private List<ExitCodeAssert> exitCodeAsserts = new ArrayList<>();
 
         private boolean stderrToStdout;
@@ -52,23 +52,23 @@ public class Expectations {
         }
 
         /**
-         * @return new {@link OutputAsserts.Builder}
+         * @return new {@link OutputConsumer.Builder}
          * @since  0.0.1
          */
-        public OutputAsserts.Builder stdout() {
-            return new OutputAsserts.Builder(this::stdout);
+        public OutputConsumer.Builder stdout() {
+            return new OutputConsumer.Builder(this::stdout);
         }
 
         /**
-         * @return new {@link OutputAsserts.Builder}
+         * @return new {@link OutputConsumer.Builder}
          * @since  0.0.1
          */
-        public OutputAsserts.Builder stderr() {
+        public OutputConsumer.Builder stderr() {
             if (stderrToStdout) {
                 throw new IllegalStateException(
                         "You cannot set any assertions on stderr while you are redirecting stderr to stdout");
             }
-            return new OutputAsserts.Builder(this::stderr);
+            return new OutputConsumer.Builder(this::stderr);
         }
 
         /**
@@ -94,18 +94,18 @@ public class Expectations {
             return this;
         }
 
-        Builder stdout(Function<InputStream, OutputAsserts> stdoutAsserts) {
+        Builder stdout(Function<InputStream, OutputConsumer> stdoutAsserts) {
             this.stdoutAsserts = stdoutAsserts;
             return this;
         }
 
-        Builder stderr(Function<InputStream, OutputAsserts> stderrAsserts) {
+        Builder stderr(Function<InputStream, OutputConsumer> stderrAsserts) {
             this.stderrAsserts = stderrAsserts;
             return this;
         }
 
         Expectations build() {
-            final Function<InputStream, OutputAsserts> stdo;
+            final Function<InputStream, OutputConsumer> stdo;
             if (stdoutAsserts == null) {
                 log.debug("stdout will be ignored because no consumer was specified for it");
                 stdo = DevNull::new;
