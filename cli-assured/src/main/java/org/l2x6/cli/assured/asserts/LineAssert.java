@@ -8,12 +8,16 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
+import java.util.function.BiConsumer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 /**
  * An assertion on a line of a command output.
@@ -29,7 +33,7 @@ public interface LineAssert extends Assert {
      * @param line
      * @since      0.0.1
      */
-    void line(String line);
+    LineAssert line(String line);
 
     /**
      * Assert that the given lines are present in the underlying output stream among other lines in any order.
@@ -39,10 +43,11 @@ public interface LineAssert extends Assert {
      * @since        0.0.1
      */
     static LineAssert contains(Collection<String> lines) {
-        return new LinesAssert<String>(
+        return new LinesAssert<String, String>(
                 Collections.unmodifiableList(new ArrayList<>(lines)),
                 new LinkedHashSet<>(lines),
-                (line, hits) -> hits.remove(line));
+                (line, hits) -> hits.remove(line),
+                "Expected lines\n\n    %s\n\nto occur in any order, but lines\n\n    %s\n\ndid not occur");
     }
 
     /**
@@ -54,14 +59,15 @@ public interface LineAssert extends Assert {
      */
     static LineAssert doesNotContain(Collection<String> lines) {
         final Set<String> checks = Collections.unmodifiableSet(new LinkedHashSet<>(lines));
-        return new LinesAssert<String>(
+        return new LinesAssert<String, String>(
                 checks,
                 new LinkedHashSet<>(),
                 (line, hits) -> {
                     if (checks.contains(line)) {
                         hits.add(line);
                     }
-                });
+                },
+                "Expected none of the lines\n\n    %s\n\nto occur, but the following lines occurred:\n\n    %s\n\n");
     }
 
     /**
@@ -73,7 +79,7 @@ public interface LineAssert extends Assert {
      * @since             0.0.1
      */
     static LineAssert containsSubstrings(Collection<String> substrings) {
-        return new LinesAssert<String>(
+        return new LinesAssert<String, String>(
                 Collections.unmodifiableList(new ArrayList<>(substrings)),
                 new LinkedHashSet<>(substrings),
                 (line, hits) -> {
@@ -83,7 +89,8 @@ public interface LineAssert extends Assert {
                             i.remove();
                         }
                     }
-                });
+                },
+                "Expected lines containing\n\n    %s\n\nto occur, but the following substrings did not occur:\n\n    %s\n\n");
     }
 
     /**
@@ -95,7 +102,7 @@ public interface LineAssert extends Assert {
      */
     static LineAssert doesNotContainSubstrings(Collection<String> unexpectedSubstrings) {
         final List<String> checks = Collections.unmodifiableList(new ArrayList<>(unexpectedSubstrings));
-        return new LinesAssert<String>(
+        return new LinesAssert<String, String>(
                 checks,
                 new LinkedHashSet<>(),
                 (line, hits) -> {
@@ -105,7 +112,8 @@ public interface LineAssert extends Assert {
                             hits.add(line);
                         }
                     }
-                });
+                },
+                "Expected no lines containing\n\n    %s\n\nto occur, but some of the substrings occur in lines\n\n    %s\n\n");
     }
 
     /**
@@ -118,8 +126,7 @@ public interface LineAssert extends Assert {
      * @since        0.0.1
      */
     static LineAssert containsMatchingPatterns(Collection<Pattern> regex) {
-        Map<String, Pattern> pats = LinesAssert.toMap(regex);
-        return LinesAssert.containsMatching(pats);
+        return LinesAssert.containsMatching(regex);
     }
 
     /**
@@ -132,8 +139,7 @@ public interface LineAssert extends Assert {
      * @since        0.0.1
      */
     static LineAssert containsMatching(Collection<String> regex) {
-        Map<String, Pattern> pats = LinesAssert.toCompiledMap(regex);
-        return LinesAssert.containsMatching(pats);
+        return LinesAssert.containsMatching(LinesAssert.compile(regex));
     }
 
     /**
@@ -145,8 +151,7 @@ public interface LineAssert extends Assert {
      * @since        0.0.1
      */
     static LineAssert doesNotContainMatchingPatterns(Collection<Pattern> regex) {
-        Map<String, Pattern> pats = LinesAssert.toMap(regex);
-        return LinesAssert.doesNotContainMatching(pats);
+        return LinesAssert.doesNotContainMatching(regex);
     }
 
     /**
@@ -158,8 +163,7 @@ public interface LineAssert extends Assert {
      * @since        0.0.1
      */
     static LineAssert doesNotContainMatching(Collection<String> regex) {
-        Map<String, Pattern> pats = LinesAssert.toCompiledMap(regex);
-        return LinesAssert.doesNotContainMatching(pats);
+        return LinesAssert.doesNotContainMatching(LinesAssert.compile(regex));
     }
 
     /**
@@ -172,4 +176,91 @@ public interface LineAssert extends Assert {
     static LineAssert hasCount(int expectedLineCount) {
         return new LineCountAssert(expectedLineCount);
     }
+
+    static class LinesAssert<C, H> implements LineAssert {
+
+        private final Collection<C> checks;
+        private final Collection<H> hits;
+        private final BiConsumer<String, Collection<H>> lineConsumer;
+        private final String message;
+
+        LinesAssert(
+                Collection<C> checks,
+                Collection<H> hits,
+                BiConsumer<String, Collection<H>> lineConsumer,
+                String message) {
+            this.checks = Objects.requireNonNull(checks, "checks");
+            this.hits = Objects.requireNonNull(hits, "hits");
+            this.lineConsumer = lineConsumer;
+            this.message = message;
+        }
+
+        static LineAssert containsMatching(Collection<Pattern> checks) {
+            final Map<String, Pattern> hts = new LinkedHashMap<>();
+            checks.forEach(p -> hts.put(p.pattern(), p));
+            return new LinesAssert<Pattern, Pattern>(
+                    checks,
+                    hts.values(),
+                    (line, hits) -> {
+                        for (Iterator<Pattern> i = hits.iterator(); i.hasNext();) {
+                            Pattern p = i.next();
+                            if (p.matcher(line).find()) {
+                                i.remove();
+                            }
+                        }
+                    },
+                    "Expected lines matching\n\n    %s\n\nto occur, but the following patterns did not match:\n\n    %s\n\n");
+        }
+
+        static LineAssert doesNotContainMatching(Collection<Pattern> checks) {
+            return new LinesAssert<Pattern, String>(
+                    checks,
+                    new LinkedHashSet<>(),
+                    (line, hits) -> {
+                        for (Iterator<Pattern> i = checks.iterator(); i.hasNext();) {
+                            Pattern p = i.next();
+                            if (p.matcher(line).find()) {
+                                hits.add(line);
+                            }
+                        }
+                    },
+                    "Expected no lines matching\n\n    %s\n\nto occur, but some of the patterns matched the lines\n\n    %s\n\n");
+        }
+
+        static Map<String, Pattern> toMap(Collection<Pattern> expectedPatterns) {
+            Map<String, Pattern> pats = new LinkedHashMap<>();
+            expectedPatterns.stream()
+                    .forEach(p -> pats.put(p.pattern(), p));
+            return pats;
+        }
+
+        static List<Pattern> compile(Collection<String> expectedPatterns) {
+            return Collections.unmodifiableList(expectedPatterns.stream()
+                    .map(Pattern::compile)
+                    .collect(Collectors.toList()));
+        }
+
+        @Override
+        public void assertSatisfied() {
+            synchronized (hits) {
+                if (!hits.isEmpty()) {
+                    throw new AssertionError(String.format(message, list(checks), list(hits)));
+                }
+            }
+        }
+
+        String list(Collection<? extends Object> list) {
+            return list.stream().map(Object::toString).collect(Collectors.joining("\n    "));
+        }
+
+        @Override
+        public LinesAssert<C, H> line(String line) {
+            synchronized (hits) {
+                lineConsumer.accept(line, hits);
+            }
+            return this;
+        }
+
+    }
+
 }

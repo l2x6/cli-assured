@@ -6,7 +6,7 @@ package org.l2x6.cli.assured.asserts;
 
 import java.util.Arrays;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
+import java.util.stream.IntStream;
 
 /**
  * An assertion on an exit code of a process.
@@ -18,20 +18,6 @@ public class ExitCodeAssert implements Assert {
 
     private final int[] sortedCodes;
     private int actualExitCode;
-
-    private ExitCodeAssert(int[] sortedCodes) {
-        this.sortedCodes = sortedCodes;
-    }
-
-    /**
-     * Assert that the actual exit code fulfills the expectations.
-     *
-     * @param actualExitCode the actual exit code of a process
-     * @since                0.0.1
-     */
-    public void exitCode(int actualExitCode) {
-        this.actualExitCode = actualExitCode;
-    }
 
     /**
      * Assert that the process exits with the given {@code expectedExitCode}
@@ -59,15 +45,31 @@ public class ExitCodeAssert implements Assert {
         return new ExitCodeAssert(sortedCodes);
     }
 
+    private ExitCodeAssert(int[] sortedCodes) {
+        this.sortedCodes = sortedCodes;
+    }
+
+    /**
+     * Assert that the actual exit code fulfills the expectations.
+     *
+     * @param actualExitCode the actual exit code of a process
+     * @since                0.0.1
+     */
+    public ExitCodeAssert exitCode(int actualExitCode) {
+        this.actualExitCode = actualExitCode;
+        return this;
+    }
+
     @Override
     public void assertSatisfied() {
         if (sortedCodes.length == 1) {
             if (sortedCodes[0] != actualExitCode) {
                 throw new AssertionError("Expected exit code " + sortedCodes[0] + " but was " + actualExitCode);
             }
-        } else if (Arrays.binarySearch(sortedCodes, actualExitCode) >= 0) {
+        } else if (Arrays.binarySearch(sortedCodes, actualExitCode) < 0) {
+            String codes = IntStream.of(sortedCodes).mapToObj(String::valueOf).collect(Collectors.joining(", "));
             throw new AssertionError("Expected any of exit codes "
-                    + Stream.of(sortedCodes).map(String::valueOf).collect(Collectors.joining(", ")) + " but was "
+                    + codes + " but was "
                     + actualExitCode);
         }
     }

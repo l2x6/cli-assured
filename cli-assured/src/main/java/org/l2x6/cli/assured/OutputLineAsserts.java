@@ -36,8 +36,9 @@ public class OutputLineAsserts implements LineAssert {
     }
 
     @Override
-    public void line(String line) {
+    public OutputLineAsserts line(String line) {
         asserts.stream().forEach(a -> a.line(line));
+        return this;
     }
 
     public Charset charset() {

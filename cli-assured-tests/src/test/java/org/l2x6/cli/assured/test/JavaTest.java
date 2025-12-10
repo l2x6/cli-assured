@@ -55,6 +55,13 @@ public class JavaTest {
                 .awaitTermination()
                 .assertSuccess();
 
+        Assertions.assertThatThrownBy(command("helloErr", "Joe")
+                .expect()
+                .stderrToStdout()::stderr)
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessage(
+                        "You cannot set any assertions on stderr while you are redirecting stderr to stdout");
+
     }
 
     @Test

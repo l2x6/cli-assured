@@ -17,12 +17,13 @@ class LineCountAssert implements LineAssert {
     @Override
     public void assertSatisfied() {
         if (actualCount.get() != expectedCount) {
-            throw new AssertionError("");
+            throw new AssertionError("Expected " + expectedCount + " lines but found " + actualCount.get());
         }
     }
 
     @Override
-    public void line(String line) {
+    public LineAssert line(String line) {
         actualCount.incrementAndGet();
+        return this;
     }
 }
