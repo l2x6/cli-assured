@@ -28,28 +28,41 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.l2x6.cli.assured.asserts.Assert;
+import org.l2x6.cli.assured.asserts.ByteCountAssert;
 import org.l2x6.cli.assured.asserts.LineAssert;
 
 public class StreamExpectations implements LineAssert {
 
-    private final List<LineAssert> asserts;
+    private final List<LineAssert> lineAsserts;
+    private final ByteCountAssert byteCountAssert;
     private final Charset charset;
     private final Supplier<OutputStream> redirect;
 
-    StreamExpectations(List<LineAssert> asserts, Charset charset, Supplier<OutputStream> redirect) {
-        this.asserts = Objects.requireNonNull(asserts, "asserts");
+    StreamExpectations(
+            List<LineAssert> lineAsserts,
+            ByteCountAssert byteCountAssert,
+            Charset charset, Supplier<OutputStream> redirect) {
+        this.lineAsserts = Objects.requireNonNull(lineAsserts, "lineAsserts");
+        this.byteCountAssert = byteCountAssert;
         this.charset = Objects.requireNonNull(charset, "charset");
         this.redirect = redirect;
     }
 
     @Override
     public void assertSatisfied() {
-        asserts.stream().forEach(LineAssert::assertSatisfied);
+        lineAsserts.stream().forEach(LineAssert::assertSatisfied);
+    }
+
+    public void assertSatisfied(long byteCount) {
+        lineAsserts.stream().forEach(LineAssert::assertSatisfied);
+        if (byteCountAssert != null) {
+            byteCountAssert.byteCount(byteCount).assertSatisfied();
+        }
     }
 
     @Override
     public StreamExpectations line(String line) {
-        asserts.stream().forEach(a -> a.line(line));
+        lineAsserts.stream().forEach(a -> a.line(line));
         return this;
     }
 
@@ -62,7 +75,7 @@ public class StreamExpectations implements LineAssert {
     }
 
     public boolean hasLineAsserts() {
-        return asserts.size() > 0;
+        return lineAsserts.size() > 0;
     }
 
     public static class Builder {
@@ -73,6 +86,7 @@ public class StreamExpectations implements LineAssert {
         }
 
         private List<LineAssert> asserts = new ArrayList<>();
+        private ByteCountAssert byteCountAssert;
         private Charset charset = StandardCharsets.UTF_8;
         private Supplier<OutputStream> redirect;
 
@@ -176,6 +190,33 @@ public class StreamExpectations implements LineAssert {
          */
         public Builder hasLineCount(Predicate<Integer> expected, String description) {
             asserts.add(LineAssert.hasLineCount(expected, description));
+            return this;
+        }
+
+        /**
+         * Assert that upon termination of the associated process, the underlying output stream has the given number of lines.
+         *
+         * @param  expectedLineCount
+         * @return                   this {@link Builder}
+         * @since                    0.0.1
+         */
+        public Builder hasByteCount(long expectedLineCount) {
+            this.byteCountAssert = ByteCountAssert.hasByteCount(expectedLineCount);
+            return this;
+        }
+
+        /**
+         * Assert that upon termination of the associated process, the underlying output stream's number of produced byted
+         * satisfies the given {@link Predicate}.
+         *
+         * @param  expected    the condition the number of actual bytes must satisfy
+         * @param  description the description of a failure, typically something like
+         *                     {@code "Expected number of bytes <condition> but found %d bytes"}
+         * @return             this {@link Builder}
+         * @since              0.0.1
+         */
+        public Builder hasByteCount(Predicate<Long> expected, String description) {
+            this.byteCountAssert = ByteCountAssert.hasByteCount(expected, description);
             return this;
         }
 
@@ -415,7 +456,7 @@ public class StreamExpectations implements LineAssert {
         Function<InputStream, OutputConsumer> build() {
             List<LineAssert> as = Collections.unmodifiableList(asserts);
             this.asserts = null;
-            final StreamExpectations streamExpectations = new StreamExpectations(as, charset, redirect);
+            final StreamExpectations streamExpectations = new StreamExpectations(as, byteCountAssert, charset, redirect);
             return in -> new OutputConsumer.OutputAsserts(in, streamExpectations);
         }
 
@@ -431,14 +472,14 @@ public class StreamExpectations implements LineAssert {
         }
 
         /**
-         * Assert that the process exits with any the given {@code expectedExitCodes}
-         * and start the command.
+         * Assert that the process exits with any the given {@code expectedExitCodes},
+         * build new {@link StreamExpectations} and set it on the parent {@link Expectations.Builder}
          *
          * @param  expectedExitCodes the exit codes to assert
-         * @return                   a new {@link CommandProcess}
+         * @return                   the parent {@link Expectations.Builder}
          * @since                    0.0.1
          */
-        public CommandProcess exitCode(int... expectedExitCodes) {
+        public Expectations.Builder exitCode(int... expectedExitCodes) {
             return parent().exitCode(expectedExitCodes);
         }
 

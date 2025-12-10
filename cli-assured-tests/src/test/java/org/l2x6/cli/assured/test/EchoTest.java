@@ -15,11 +15,10 @@ public class EchoTest {
                 .expect()
                 .stdout()
                 .hasLines("CLI Assured rocks!")
+                .hasLineCount(1)
                 .exitCode(0)
+                .start()
                 .awaitTermination()
                 .assertSuccess();
-        //                .output()
-        //                .hasLine("CLI Assured rocks!")
-        //                .hasLineCount(1);
     }
 }

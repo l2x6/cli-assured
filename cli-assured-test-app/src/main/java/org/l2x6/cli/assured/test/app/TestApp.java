@@ -29,9 +29,18 @@ public class TestApp {
             Thread.sleep(delay);
             System.out.println("Sleeped for " + delay + " ms");
             break;
+        case "exitCode":
+            final int exitCode = Integer.parseInt(args[1]);
+            System.out.println("Returning exit code " + exitCode);
+            System.out.flush();
+            System.exit(exitCode);
+            break;
         default:
             throw new RuntimeException("Unsupported subcommand " + args[0]);
         }
+
+        System.out.flush();
+        System.err.flush();
 
     }
 }

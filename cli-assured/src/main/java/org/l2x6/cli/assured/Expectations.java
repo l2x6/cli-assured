@@ -5,9 +5,6 @@
 package org.l2x6.cli.assured;
 
 import java.io.InputStream;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
 import java.util.Objects;
 import java.util.function.Function;
 import java.util.regex.Pattern;
@@ -26,15 +23,15 @@ public class Expectations {
     private static final Logger log = LoggerFactory.getLogger(Expectations.class);
     final Function<InputStream, OutputConsumer> stdout;
     final Function<InputStream, OutputConsumer> stderr;
-    final List<ExitCodeAssert> exitCodeAsserts;
+    final ExitCodeAssert exitCodeAssert;
 
     Expectations(
             Function<InputStream, OutputConsumer> stdout,
             Function<InputStream, OutputConsumer> stderr,
-            List<ExitCodeAssert> exitCodeAsserts) {
+            ExitCodeAssert exitCodeAssert) {
         this.stdout = Objects.requireNonNull(stdout, "stdout");
         this.stderr = stderr;
-        this.exitCodeAsserts = Objects.requireNonNull(exitCodeAsserts, "exitCodeAsserts");
+        this.exitCodeAssert = Objects.requireNonNull(exitCodeAssert, "exitCodeAssert");
     }
 
     public static class Builder {
@@ -43,7 +40,7 @@ public class Expectations {
         private final Command.Builder command;
         private Function<InputStream, OutputConsumer> stdoutAsserts;
         private Function<InputStream, OutputConsumer> stderrAsserts;
-        private List<ExitCodeAssert> exitCodeAsserts = new ArrayList<>();
+        private ExitCodeAssert exitCodeAssert;
 
         private boolean stderrToStdout;
 
@@ -83,16 +80,15 @@ public class Expectations {
         }
 
         /**
-         * Assert that the process exits with any the given {@code expectedExitCodes}
-         * and start the command.
+         * Assert that the process exits with any the given {@code expectedExitCodes}.
          *
          * @param  expectedExitCodes the exit codes to assert
-         * @return                   a new {@link CommandProcess}
+         * @return                   this {@link Builder}
          * @since                    0.0.1
          */
-        public CommandProcess exitCode(int... expectedExitCodes) {
-            this.exitCodeAsserts.add(ExitCodeAssert.any(expectedExitCodes));
-            return start();
+        public Builder exitCode(int... expectedExitCodes) {
+            this.exitCodeAssert = ExitCodeAssert.any(expectedExitCodes);
+            return this;
         }
 
         Builder stdout(Function<InputStream, OutputConsumer> stdoutAsserts) {
@@ -106,26 +102,19 @@ public class Expectations {
         }
 
         Expectations build() {
-            final Function<InputStream, OutputConsumer> stdo;
             if (stdoutAsserts == null) {
                 log.debug("stdout will be ignored because no consumer was specified for it");
-                stdo = DevNull::new;
-            } else {
-                stdo = stdoutAsserts;
+                stdoutAsserts = DevNull::new;
             }
             if (stderrAsserts == null && !stderrToStdout) {
                 log.debug("Any output to stderr will cause an error because no consumer was specified for it");
                 stderrAsserts = stderr().doesNotHaveLinesMatching(MATCH_ANY_PATTERN).build();
             }
-            final List<ExitCodeAssert> eca;
-            if (exitCodeAsserts.isEmpty()) {
-                eca = Collections.singletonList(ExitCodeAssert.of(0));
+            if (exitCodeAssert == null) {
+                exitCodeAssert = ExitCodeAssert.of(0);
                 log.debug("Adding default exit code assert ExitCodeAssert.of(0) because no exit code assert was specified");
-            } else {
-                eca = Collections.unmodifiableList(exitCodeAsserts);
-                exitCodeAsserts = null;
             }
-            return new Expectations(stdo, stderrAsserts, eca);
+            return new Expectations(stdoutAsserts, stderrAsserts, exitCodeAssert);
         }
 
         /**

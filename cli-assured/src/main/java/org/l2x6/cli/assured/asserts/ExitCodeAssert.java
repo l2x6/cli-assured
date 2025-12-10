@@ -17,7 +17,7 @@ import java.util.stream.IntStream;
 public class ExitCodeAssert implements Assert {
 
     private final int[] sortedCodes;
-    private int actualExitCode;
+    private int actualExitCode = -1;
 
     /**
      * Assert that the process exits with the given {@code expectedExitCode}
@@ -50,7 +50,8 @@ public class ExitCodeAssert implements Assert {
     }
 
     /**
-     * Assert that the actual exit code fulfills the expectations.
+     * Record the actual exit code and throw any {@link AssertionError}s from {@link #assertSatisfied()} rather than
+     * from this method.
      *
      * @param actualExitCode the actual exit code of a process
      * @since                0.0.1
