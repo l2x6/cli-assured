@@ -4,12 +4,9 @@
  */
 package org.l2x6.cli.assured;
 
-import java.io.BufferedReader;
-import java.io.FilterInputStream;
 import java.io.FilterOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.UncheckedIOException;
 import java.nio.charset.Charset;
@@ -22,18 +19,19 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
+import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import org.l2x6.cli.assured.asserts.LineAssert;
 
-public class OutputStreamAsserts implements LineAssert {
+public class StreamExpectations implements LineAssert {
 
     private final List<LineAssert> asserts;
     private final Charset charset;
     private final Supplier<OutputStream> redirect;
 
-    OutputStreamAsserts(List<LineAssert> asserts, Charset charset, Supplier<OutputStream> redirect) {
+    StreamExpectations(List<LineAssert> asserts, Charset charset, Supplier<OutputStream> redirect) {
         this.asserts = Objects.requireNonNull(asserts, "asserts");
         this.charset = Objects.requireNonNull(charset, "charset");
         this.redirect = redirect;
@@ -45,7 +43,7 @@ public class OutputStreamAsserts implements LineAssert {
     }
 
     @Override
-    public OutputStreamAsserts line(String line) {
+    public StreamExpectations line(String line) {
         asserts.stream().forEach(a -> a.line(line));
         return this;
     }
@@ -62,127 +60,16 @@ public class OutputStreamAsserts implements LineAssert {
         return asserts.size() > 0;
     }
 
-    public static class OutputAsserts extends OutputConsumer {
-        private final OutputStreamAsserts lineAsserts;
-
-        OutputAsserts(InputStream inputStream, OutputStreamAsserts lineAsserts) {
-            super(inputStream);
-            this.lineAsserts = lineAsserts;
-        }
-
-        @Override
-        public void run() {
-            if (lineAsserts.hasLineAsserts()) {
-                try (BufferedReader r = new BufferedReader(
-                        new InputStreamReader(redirect(in, lineAsserts.redirect()), lineAsserts.charset()))) {
-                    String line;
-                    while (!cancelled && (line = r.readLine()) != null) {
-                        lineAsserts.line(line);
-                    }
-                } catch (IOException e) {
-                    exception = e;
-                }
-            } else {
-                try (InputStream wrappedIn = redirect(in, lineAsserts.redirect())) {
-                    byte[] buff = new byte[8192];
-                    while (wrappedIn.read(buff) > 0) {
-                    }
-                } catch (IOException e) {
-                    exception = e;
-                }
-            }
-        }
-
-        static InputStream redirect(InputStream in, Supplier<OutputStream> redirect) {
-            if (redirect == null) {
-                return in;
-            }
-            return new RedirectInputStream(in, redirect.get());
-        }
-
-        public void assertSatisfied() {
-            lineAsserts.assertSatisfied();
-        }
-
-        public void line(String line) {
-            lineAsserts.line(line);
-        }
-
-        public int hashCode() {
-            return lineAsserts.hashCode();
-        }
-
-        public boolean equals(Object obj) {
-            return lineAsserts.equals(obj);
-        }
-
-        public String toString() {
-            return lineAsserts.toString();
-        }
-
-    }
-
-    static class RedirectInputStream extends FilterInputStream {
-
-        private final OutputStream out;
-
-        protected RedirectInputStream(InputStream in, OutputStream out) {
-            super(in);
-            this.out = out;
-        }
-
-        @Override
-        public int read() throws IOException {
-            final int c = super.read();
-            if (c >= 0) {
-                out.write(c);
-            }
-            return c;
-        }
-
-        @Override
-        public int read(byte[] b, int off, int len) throws IOException {
-            final int cnt = super.read(b, off, len);
-            if (cnt > 0) {
-                out.write(b, off, cnt);
-            }
-            return cnt;
-        }
-
-        @Override
-        public void close() throws IOException {
-            try {
-                super.close();
-            } finally {
-                out.close();
-            }
-        }
-
-    }
-
-    static class NonClosingOut extends FilterOutputStream {
-
-        public NonClosingOut(OutputStream out) {
-            super(out);
-        }
-
-        @Override
-        public void close() throws IOException {
-            /* The caller is responsible for closing */
-        }
-    }
-
     public static class Builder {
+        private final Function<Function<InputStream, OutputConsumer>, Expectations.Builder> expectations;
 
-        private final OutputConsumer.Builder outputAsserts;
+        Builder(Function<Function<InputStream, OutputConsumer>, Expectations.Builder> expectations) {
+            this.expectations = expectations;
+        }
 
         private List<LineAssert> asserts = new ArrayList<>();
         private Charset charset = StandardCharsets.UTF_8;
         private Supplier<OutputStream> redirect;
-
-        Builder(OutputConsumer.Builder outputAsserts) {
-            this.outputAsserts = outputAsserts;
-        }
 
         /**
          * Assert that the given lines are present in the underlying output stream among other lines in any order.
@@ -419,34 +306,66 @@ public class OutputStreamAsserts implements LineAssert {
             return this;
         }
 
-        /**
-         * @return the parent {@link OutputConsumer.Builder}
-         */
-        public OutputConsumer.Builder parent() {
-            return outputAsserts.createConsumer(in -> new OutputAsserts(in, this.build()));
-        }
-
-        OutputStreamAsserts build() {
+        Function<InputStream, OutputConsumer> build() {
             List<LineAssert> as = Collections.unmodifiableList(asserts);
             this.asserts = null;
-            return new OutputStreamAsserts(as, charset, redirect);
+            final StreamExpectations streamExpectations = new StreamExpectations(as, charset, redirect);
+            return in -> new OutputConsumer.OutputAsserts(in, streamExpectations);
         }
 
         /**
-         * @param  expectedExitCode
-         * @return
+         * Build new {@link StreamExpectations} from this {@link Builder} and pass it to the parent
+         * {@link Expectations.Builder}.
+         *
+         * @return the parent {@link Expectations.Builder}
+         * @since  0.0.1
+         */
+        Expectations.Builder parent() {
+            return expectations.apply(build());
+        }
+
+        /**
+         * Assert that the process exits with any the given {@code expectedExitCodes}
+         * and start the command.
+         *
+         * @param  expectedExitCodes the exit codes to assert
+         * @return                   a new {@link CommandProcess}
+         * @since                    0.0.1
          */
         public CommandProcess exitCode(int... expectedExitCodes) {
             return parent().exitCode(expectedExitCodes);
         }
 
+        /**
+         * A shorthand for {@link #parent()}..{@link Expectations.Builder#start() start()}
+         *
+         * @return a started {@link CommandProcess}
+         * @since  0.0.1
+         */
         public CommandProcess start() {
             return parent().start();
         }
 
-        public OutputConsumer.Builder stderr() {
+        /**
+         * A shorthand for {@link #parent()}..{@link Expectations.Builder#stderr() stderr()}
+         *
+         * @return a new {@link OutputConsumer.Builder} to configure assertions for stderr
+         * @since  0.0.1
+         */
+        public Builder stderr() {
             return parent().stderr();
         }
+    }
 
+    static class NonClosingOut extends FilterOutputStream {
+
+        public NonClosingOut(OutputStream out) {
+            super(out);
+        }
+
+        @Override
+        public void close() throws IOException {
+            /* The caller is responsible for closing */
+        }
     }
 }

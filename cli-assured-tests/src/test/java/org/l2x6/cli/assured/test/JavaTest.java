@@ -16,7 +16,7 @@ import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.l2x6.cli.assured.CliAssured;
 import org.l2x6.cli.assured.Command;
-import org.l2x6.cli.assured.OutputStreamAsserts;
+import org.l2x6.cli.assured.StreamExpectations;
 import org.l2x6.cli.assured.test.app.TestApp;
 
 public class JavaTest {
@@ -34,7 +34,6 @@ public class JavaTest {
             command("hello", "Joe")
                     .expect()
                     .stderr()
-                    .lines()
                     .contains("Hello Joe")
                     .start()
                     .awaitTermination()
@@ -52,7 +51,6 @@ public class JavaTest {
                 .expect()
                 .stderrToStdout()
                 .stdout()
-                .lines()
                 .contains("Hello stderr Joe")
                 .start()
                 .awaitTermination()
@@ -73,7 +71,6 @@ public class JavaTest {
         command("helloErr", "Joe")
                 .expect()
                 .stderr()
-                .lines()
                 .contains("Hello stderr Joe")
                 .start()
                 .awaitTermination()
@@ -115,7 +112,6 @@ public class JavaTest {
             command("hello", "Joe")
                     .expect()
                     .stderr()
-                    .lines()
                     .containsSubstrings("lo J")
                     .start()
                     .awaitTermination()
@@ -139,7 +135,6 @@ public class JavaTest {
             command("hello", "Joe")
                     .expect()
                     .stderr()
-                    .lines()
                     .containsMatching("lo J.e")
                     .start()
                     .awaitTermination()
@@ -257,10 +252,8 @@ public class JavaTest {
                 .cd(cd)
                 .expect()
                 .stdout()
-                .lines()
                 .hasCount(0)
                 .stderr()
-                .lines()
                 .hasCount(0)
                 .start()
                 .awaitTermination()
@@ -303,18 +296,16 @@ public class JavaTest {
 
     }
 
-    static OutputStreamAsserts.Builder run(String... args) {
+    static StreamExpectations.Builder run(String... args) {
         return command(args)
                 .expect()
-                .stdout()
-                .lines();
+                .stdout();
     }
 
-    static OutputStreamAsserts.Builder runErr(String... args) {
+    static StreamExpectations.Builder runErr(String... args) {
         return command(args)
                 .expect()
-                .stderr()
-                .lines();
+                .stderr();
     }
 
     static Command.Builder command(String... args) {

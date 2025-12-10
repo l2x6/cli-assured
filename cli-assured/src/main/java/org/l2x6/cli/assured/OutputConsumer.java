@@ -4,9 +4,13 @@
  */
 package org.l2x6.cli.assured;
 
+import java.io.BufferedReader;
+import java.io.FilterInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.function.Function;
+import java.io.InputStreamReader;
+import java.io.OutputStream;
+import java.util.function.Supplier;
 import org.l2x6.cli.assured.asserts.Assert;
 
 public abstract class OutputConsumer extends Thread implements Assert {
@@ -49,68 +53,102 @@ public abstract class OutputConsumer extends Thread implements Assert {
 
     }
 
-    public static class Builder {
-        private final Function<Function<InputStream, OutputConsumer>, Expectations.Builder> expectations;
-        private Function<InputStream, OutputConsumer> createConsumer;
+    public static class OutputAsserts extends OutputConsumer {
+        private final StreamExpectations lineAsserts;
 
-        Builder(Function<Function<InputStream, OutputConsumer>, Expectations.Builder> expectations) {
-            this.expectations = expectations;
+        OutputAsserts(InputStream inputStream, StreamExpectations lineAsserts) {
+            super(inputStream);
+            this.lineAsserts = lineAsserts;
         }
 
-        /**
-         * @return new {@link OutputStreamAsserts.Builder}
-         */
-        public OutputStreamAsserts.Builder lines() {
-            return new OutputStreamAsserts.Builder(this);
-        }
-
-        Builder createConsumer(Function<InputStream, OutputConsumer> cc) {
-            if (createConsumer != null) {
-                // TODO: better error message; explain that lines() or the possible future alternatives can be called only once
-                throw new IllegalStateException("Cannot create multiple Output consumers");
+        @Override
+        public void run() {
+            if (lineAsserts.hasLineAsserts()) {
+                try (BufferedReader r = new BufferedReader(
+                        new InputStreamReader(redirect(in, lineAsserts.redirect()), lineAsserts.charset()))) {
+                    String line;
+                    while (!cancelled && (line = r.readLine()) != null) {
+                        lineAsserts.line(line);
+                    }
+                } catch (IOException e) {
+                    exception = e;
+                }
+            } else {
+                try (InputStream wrappedIn = redirect(in, lineAsserts.redirect())) {
+                    byte[] buff = new byte[8192];
+                    while (wrappedIn.read(buff) > 0) {
+                    }
+                } catch (IOException e) {
+                    exception = e;
+                }
             }
-            this.createConsumer = cc;
-            return this;
         }
 
-        public CommandProcess exitCode(int... exitCodes) {
-            return parent().exitCode(exitCodes).start();
+        static InputStream redirect(InputStream in, Supplier<OutputStream> redirect) {
+            if (redirect == null) {
+                return in;
+            }
+            return new RedirectInputStream(in, redirect.get());
         }
 
-        Function<InputStream, OutputConsumer> build() {
-            return createConsumer;
+        public void assertSatisfied() {
+            lineAsserts.assertSatisfied();
         }
 
-        /**
-         * Create a new {@link OutputConsumer} out of this {@link Builder} and set it on the parent
-         * {@link Expectations.Builder}
-         *
-         * @return {@link Expectations.Builder}
-         * @since  0.0.1
-         */
-        public Expectations.Builder parent() {
-            return expectations.apply(this.build());
+        public void line(String line) {
+            lineAsserts.line(line);
         }
 
-        /**
-         * A shorthand for {@link #parent()}..{@link Expectations.Builder#start() start()}
-         *
-         * @return a started {@link CommandProcess}
-         * @since  0.0.1
-         */
-        public CommandProcess start() {
-            return parent().start();
+        public int hashCode() {
+            return lineAsserts.hashCode();
         }
 
-        /**
-         * A shorthand for {@link #parent()}..{@link Expectations.Builder#stderr() stderr()}
-         *
-         * @return a new {@link OutputConsumer.Builder} to configure assertions for stderr
-         * @since  0.0.1
-         */
-        public Builder stderr() {
-            return parent().stderr();
+        public boolean equals(Object obj) {
+            return lineAsserts.equals(obj);
+        }
+
+        public String toString() {
+            return lineAsserts.toString();
         }
 
     }
+
+    static class RedirectInputStream extends FilterInputStream {
+
+        private final OutputStream out;
+
+        protected RedirectInputStream(InputStream in, OutputStream out) {
+            super(in);
+            this.out = out;
+        }
+
+        @Override
+        public int read() throws IOException {
+            final int c = super.read();
+            if (c >= 0) {
+                out.write(c);
+            }
+            return c;
+        }
+
+        @Override
+        public int read(byte[] b, int off, int len) throws IOException {
+            final int cnt = super.read(b, off, len);
+            if (cnt > 0) {
+                out.write(b, off, cnt);
+            }
+            return cnt;
+        }
+
+        @Override
+        public void close() throws IOException {
+            try {
+                super.close();
+            } finally {
+                out.close();
+            }
+        }
+
+    }
+
 }

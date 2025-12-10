@@ -55,20 +55,20 @@ public class Expectations {
          * @return new {@link OutputConsumer.Builder}
          * @since  0.0.1
          */
-        public OutputConsumer.Builder stdout() {
-            return new OutputConsumer.Builder(this::stdout);
+        public StreamExpectations.Builder stdout() {
+            return new StreamExpectations.Builder(this::stdout);
         }
 
         /**
          * @return new {@link OutputConsumer.Builder}
          * @since  0.0.1
          */
-        public OutputConsumer.Builder stderr() {
+        public StreamExpectations.Builder stderr() {
             if (stderrToStdout) {
                 throw new IllegalStateException(
                         "You cannot set any assertions on stderr while you are redirecting stderr to stdout");
             }
-            return new OutputConsumer.Builder(this::stderr);
+            return new StreamExpectations.Builder(this::stderr);
         }
 
         /**
@@ -84,14 +84,15 @@ public class Expectations {
 
         /**
          * Assert that the process exits with any the given {@code expectedExitCodes}
+         * and start the command.
          *
          * @param  expectedExitCodes the exit codes to assert
-         * @return                   this {@link Builder}
+         * @return                   a new {@link CommandProcess}
          * @since                    0.0.1
          */
-        public Builder exitCode(int... expectedExitCodes) {
+        public CommandProcess exitCode(int... expectedExitCodes) {
             this.exitCodeAsserts.add(ExitCodeAssert.any(expectedExitCodes));
-            return this;
+            return start();
         }
 
         Builder stdout(Function<InputStream, OutputConsumer> stdoutAsserts) {
@@ -114,7 +115,7 @@ public class Expectations {
             }
             if (stderrAsserts == null && !stderrToStdout) {
                 log.debug("Any output to stderr will cause an error because no consumer was specified for it");
-                stderrAsserts = stderr().lines().doesNotContainMatching(MATCH_ANY_PATTERN).parent().build();
+                stderrAsserts = stderr().doesNotContainMatching(MATCH_ANY_PATTERN).build();
             }
             final List<ExitCodeAssert> eca;
             if (exitCodeAsserts.isEmpty()) {
@@ -127,8 +128,15 @@ public class Expectations {
             return new Expectations(stdo, stderrAsserts, eca);
         }
 
+        /**
+         * Build new {@link Expectations}, pass them to the parent {@link Command.Builder} and start the process.
+         * and start the command.
+         *
+         * @return a new {@link CommandProcess}
+         * @since  0.0.1
+         */
         public CommandProcess start() {
-            return command.expect(this).start();
+            return command.expect(build()).start();
         }
 
     }

@@ -132,7 +132,7 @@ public class Command {
         private List<String> args = new ArrayList<>();
         private Map<String, String> env = new LinkedHashMap<>();
         private Path cd;
-        private Expectations.Builder expectations;
+        private Expectations expectations;
 
         Builder() {
         }
@@ -294,7 +294,7 @@ public class Command {
          * @return              this {@link Builder}
          * @since               0.0.1
          */
-        public Builder expect(Expectations.Builder expectations) {
+        Builder expect(Expectations expectations) {
             this.expectations = expectations;
             return this;
         }
@@ -315,7 +315,7 @@ public class Command {
                     args,
                     env,
                     cd == null ? Paths.get(".").toAbsolutePath().normalize() : cd,
-                    expectations.build());
+                    expectations);
             return cmd.start();
         }
 
