@@ -10,7 +10,7 @@
 
     <groupId>org.l2x6.cli-assured</groupId>
     <artifactId>cli-assured-parent</artifactId>
-    <version>0.0.1-alpha3</version>
+    <version>0.0.1-SNAPSHOT</version>
     <packaging>pom</packaging>
 
     <name>${project.groupId}:${project.artifactId}</name>
@@ -37,7 +37,7 @@
         <connection>scm:git:git@github.com:l2x6/cli-assured.git</connection>
         <developerConnection>scm:git:git@github.com:l2x6/cli-assured.git</developerConnection>
         <url>https://github.com/l2x6/cli-assured</url>
-        <tag>0.0.1-alpha3</tag>
+        <tag>head</tag>
     </scm>
     <issueManagement>
         <system>GitHub Issues</system>
