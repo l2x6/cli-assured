@@ -21,10 +21,12 @@ public abstract class OutputConsumer extends Thread implements Assert {
     protected volatile boolean cancelled;
     protected List<Throwable> exceptions = new ArrayList<>();
     protected final InputStream in;
+    protected final Stream stream;
     protected final AtomicInteger byteCount = new AtomicInteger();
 
-    OutputConsumer(InputStream in) {
+    OutputConsumer(InputStream in, Stream stream) {
         this.in = in;
+        this.stream = stream;
     }
 
     @Override
@@ -32,7 +34,7 @@ public abstract class OutputConsumer extends Thread implements Assert {
         synchronized (exceptions) {
             if (!exceptions.isEmpty()) {
                 final AssertionError ae = new AssertionError(
-                        "There were exceptions caught while processing the output stream:");
+                        "There were exceptions caught while processing " + stream + ":");
                 exceptions.forEach(ae::addSuppressed);
                 throw ae;
             }
@@ -50,10 +52,14 @@ public abstract class OutputConsumer extends Thread implements Assert {
         return byteCount.get();
     }
 
+    public static enum Stream {
+        stdout, stderr
+    }
+
     public static class DevNull extends OutputConsumer {
 
-        public DevNull(InputStream in) {
-            super(in);
+        public DevNull(InputStream in, Stream stream) {
+            super(in, stream);
         }
 
         @Override
@@ -75,7 +81,7 @@ public abstract class OutputConsumer extends Thread implements Assert {
         private final StreamExpectations streamExpectations;
 
         OutputAsserts(InputStream inputStream, StreamExpectations streamExpectations) {
-            super(inputStream);
+            super(inputStream, streamExpectations.stream);
             this.streamExpectations = Objects.requireNonNull(streamExpectations, "streamExpectations");
         }
 

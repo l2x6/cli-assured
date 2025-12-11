@@ -9,6 +9,7 @@ import java.util.Objects;
 import java.util.function.Function;
 import java.util.regex.Pattern;
 import org.l2x6.cli.assured.OutputConsumer.DevNull;
+import org.l2x6.cli.assured.OutputConsumer.Stream;
 import org.l2x6.cli.assured.asserts.ExitCodeAssert;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -53,7 +54,7 @@ public class Expectations {
          * @since  0.0.1
          */
         public StreamExpectations.Builder stdout() {
-            return new StreamExpectations.Builder(this::stdout);
+            return new StreamExpectations.Builder(this::stdout, Stream.stdout);
         }
 
         /**
@@ -65,7 +66,7 @@ public class Expectations {
                 throw new IllegalStateException(
                         "You cannot set any assertions on stderr while you are redirecting stderr to stdout");
             }
-            return new StreamExpectations.Builder(this::stderr);
+            return new StreamExpectations.Builder(this::stderr, Stream.stderr);
         }
 
         /**
@@ -104,7 +105,7 @@ public class Expectations {
         Expectations build() {
             if (stdoutAsserts == null) {
                 log.debug("stdout will be ignored because no consumer was specified for it");
-                stdoutAsserts = DevNull::new;
+                stdoutAsserts = in -> new DevNull(in, Stream.stdout);
             }
             if (stderrAsserts == null && !stderrToStdout) {
                 log.debug("Any output to stderr will cause an error because no consumer was specified for it");

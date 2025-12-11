@@ -11,6 +11,9 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 import java.util.UUID;
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.Test;
@@ -371,6 +374,19 @@ public class JavaTest {
 
             Assertions.assertThat(result.byteCountStdout()).isBetween(11L, 12L);
         }
+
+    }
+
+    @Test
+    void log() throws IOException {
+
+        List<String> lines = Collections.synchronizedList(new ArrayList<>());
+        run("hello", "Joe")
+                .log(lines::add)
+                .start()
+                .awaitTermination()
+                .assertSuccess();
+        Assertions.assertThat(lines).hasSize(1).contains("Hello Joe");
 
     }
 
