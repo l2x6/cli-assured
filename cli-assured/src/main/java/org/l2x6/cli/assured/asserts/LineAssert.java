@@ -17,6 +17,7 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BiConsumer;
+import java.util.function.Consumer;
 import java.util.function.Predicate;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -246,6 +247,36 @@ public interface LineAssert extends Assert {
      */
     public static LineCountAssert hasLineCount(Predicate<Integer> expected, String description) {
         return new LineCountAssert(expected, description);
+    }
+
+    /**
+     * Pass each line to the given {@link Consumer}. Handy for logging and other similar use cases.
+     *
+     * @param  consumer the consumer to which all lines should be passed
+     * @return          a new {@link LineAssert}
+     * @since           0.0.1
+     */
+    static LineAssert log(Consumer<String> consumer) {
+        return new ConsumerAssert(consumer);
+    }
+
+    static class ConsumerAssert implements LineAssert {
+        private final Consumer<String> consumer;
+
+        private ConsumerAssert(Consumer<String> consumer) {
+            this.consumer = consumer;
+        }
+
+        @Override
+        public void assertSatisfied() {
+        }
+
+        @Override
+        public LineAssert line(String line) {
+            consumer.accept(line);
+            return this;
+        }
+
     }
 
     static class LinesAssert<C, H> implements LineAssert {

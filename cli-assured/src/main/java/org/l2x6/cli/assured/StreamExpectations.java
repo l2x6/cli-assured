@@ -20,6 +20,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
+import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
@@ -30,22 +31,27 @@ import java.util.stream.Stream;
 import org.l2x6.cli.assured.asserts.Assert;
 import org.l2x6.cli.assured.asserts.ByteCountAssert;
 import org.l2x6.cli.assured.asserts.LineAssert;
+import org.slf4j.LoggerFactory;
 
 public class StreamExpectations implements LineAssert {
 
     private final List<LineAssert> lineAsserts;
     private final ByteCountAssert byteCountAssert;
-    private final Charset charset;
-    private final Supplier<OutputStream> redirect;
+    final Charset charset;
+    final Supplier<OutputStream> redirect;
+    final OutputConsumer.Stream stream;
 
     StreamExpectations(
             List<LineAssert> lineAsserts,
             ByteCountAssert byteCountAssert,
-            Charset charset, Supplier<OutputStream> redirect) {
+            Charset charset,
+            Supplier<OutputStream> redirect,
+            OutputConsumer.Stream stream) {
         this.lineAsserts = Objects.requireNonNull(lineAsserts, "lineAsserts");
         this.byteCountAssert = byteCountAssert;
         this.charset = Objects.requireNonNull(charset, "charset");
         this.redirect = redirect;
+        this.stream = stream;
     }
 
     @Override
@@ -80,9 +86,12 @@ public class StreamExpectations implements LineAssert {
 
     public static class Builder {
         private final Function<Function<InputStream, OutputConsumer>, Expectations.Builder> expectations;
+        private final OutputConsumer.Stream stream;
 
-        Builder(Function<Function<InputStream, OutputConsumer>, Expectations.Builder> expectations) {
+        Builder(Function<Function<InputStream, OutputConsumer>, Expectations.Builder> expectations,
+                OutputConsumer.Stream stream) {
             this.expectations = expectations;
+            this.stream = stream;
         }
 
         private List<LineAssert> asserts = new ArrayList<>();
@@ -468,10 +477,35 @@ public class StreamExpectations implements LineAssert {
             return this;
         }
 
+        /**
+         * Log each line of the output at {@code INFO} level using {@code org.l2x6.cli.assured.[stdout|stderr]} logger.
+         *
+         * @return this {@link Builder}
+         * @since  0.0.1
+         */
+        public Builder log() {
+            this.asserts.add(LineAssert.log(LoggerFactory.getLogger("org.l2x6.cli.assured." + stream.name())::info));
+            return this;
+        }
+
+        /**
+         * Log each line of the output using the given {@code logger}. Note that the {@link Consumer#accept(Object)}
+         * method will be called from an output consuming thread.
+         *
+         * @param  logger a {@link Consumer} to notify about every new line.
+         * @return        this {@link Builder}
+         * @since         0.0.1
+         */
+        public Builder log(Consumer<String> logger) {
+            this.asserts.add(LineAssert.log(logger));
+            return this;
+        }
+
         Function<InputStream, OutputConsumer> build() {
             List<LineAssert> as = Collections.unmodifiableList(asserts);
             this.asserts = null;
-            final StreamExpectations streamExpectations = new StreamExpectations(as, byteCountAssert, charset, redirect);
+            final StreamExpectations streamExpectations = new StreamExpectations(as, byteCountAssert, charset, redirect,
+                    stream);
             return in -> new OutputConsumer.OutputAsserts(in, streamExpectations);
         }
 
