@@ -5,6 +5,7 @@
 package org.l2x6.cli.assured;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.UncheckedIOException;
 import java.nio.file.Path;
 import java.time.Duration;
@@ -12,7 +13,9 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.function.Function;
 import java.util.stream.Collectors;
+import org.l2x6.cli.assured.asserts.Assert;
 import org.slf4j.LoggerFactory;
 
 /**
@@ -67,7 +70,26 @@ class Command {
             builder.environment().putAll(env);
         }
         try {
-            return new CommandProcess(this, builder.start());
+            final Process process = builder.start();
+            final OutputConsumer out = expectations.stdout.apply(process.getInputStream());
+            out.start();
+
+            final OutputConsumer err;
+            final Function<InputStream, OutputConsumer> stde = expectations.stderr;
+            if (stde == null) {
+                err = null;
+            } else {
+                err = stde.apply(process.getErrorStream());
+                err.start();
+            }
+
+            return new CommandProcess(
+                    cmdArrayString,
+                    process,
+                    joinAsserts(out, err),
+                    expectations.exitCodeAssert,
+                    out,
+                    err);
         } catch (IOException e) {
             throw new UncheckedIOException("Could not execute " + cmdArrayString, e);
         }
@@ -126,4 +148,9 @@ class Command {
         return result;
     }
 
+    Assert joinAsserts(OutputConsumer out,
+            OutputConsumer err) {
+        return err == null ? Assert.all(out, expectations.exitCodeAssert)
+                : Assert.all(out, err, expectations.exitCodeAssert);
+    }
 }

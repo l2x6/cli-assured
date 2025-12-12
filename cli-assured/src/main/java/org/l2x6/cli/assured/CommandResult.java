@@ -14,7 +14,7 @@ import org.l2x6.cli.assured.asserts.Assert;
  * @author <a href="https://github.com/ppalaga">Peter Palaga</a>
  */
 public class CommandResult {
-    private final Command command;
+    private final String cmdArrayString;
     private final int exitCode;
     private final Duration duration;
     private final long byteCountStdout;
@@ -23,7 +23,7 @@ public class CommandResult {
     private final Assert outputAssert;
 
     CommandResult(
-            Command command,
+            String cmdArrayString,
             int exitCode,
             Duration runtimeMs,
             long byteCountStdout,
@@ -31,7 +31,7 @@ public class CommandResult {
             Throwable exception,
             Assert outputAssert) {
         super();
-        this.command = command;
+        this.cmdArrayString = cmdArrayString;
         this.exitCode = exitCode;
         this.duration = runtimeMs;
         this.byteCountStdout = byteCountStdout;
@@ -53,7 +53,7 @@ public class CommandResult {
      */
     public CommandResult assertSuccess() {
         if (exception != null) {
-            throw new AssertionError("Exception was thrown when running " + command.cmdArrayString + ": "
+            throw new AssertionError("Exception was thrown when running " + cmdArrayString + ": "
                     + exception.getMessage() + "\nCommand output\n" + outputAssert.toString(), exception);
         }
         outputAssert.assertSatisfied();
@@ -70,7 +70,7 @@ public class CommandResult {
     public CommandResult assertTimeout() {
         if (!(exception instanceof TimeoutAssertionError)) {
             throw new AssertionError(
-                    "Expected a timeout when running " + command.cmdArrayString + ": but got exit code " + exitCode
+                    "Expected a timeout when running " + cmdArrayString + ": but got exit code " + exitCode
                             + "\nCommand output\n" + outputAssert.toString(),
                     exception);
         }

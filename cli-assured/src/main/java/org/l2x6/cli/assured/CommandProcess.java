@@ -5,10 +5,9 @@
 package org.l2x6.cli.assured;
 
 import java.io.Closeable;
-import java.io.InputStream;
 import java.time.Duration;
-import java.util.function.Function;
 import org.l2x6.cli.assured.asserts.Assert;
+import org.l2x6.cli.assured.asserts.ExitCodeAssert;
 
 /**
  * A wrapper around {@link Process} that manages its destroying and offers
@@ -19,30 +18,30 @@ import org.l2x6.cli.assured.asserts.Assert;
  */
 public class CommandProcess implements Closeable {
 
-    private final Command command;
+    private final String cmdArrayString;
     private final Process process;
     private final Thread shutDownHook;
     private final OutputConsumer out;
     private final OutputConsumer err;
 
     private volatile boolean closed = false;
+    private final Assert asserts;
+    private final ExitCodeAssert exitCodeAssert;
 
-    CommandProcess(Command command, Process process) {
+    CommandProcess(
+            String cmdArrayString,
+            Process process,
+            Assert asserts,
+            ExitCodeAssert exitCodeAssert,
+            OutputConsumer out,
+            OutputConsumer err) {
         super();
-        this.command = command;
+        this.cmdArrayString = cmdArrayString;
         this.process = process;
-
-        out = command.expectations.stdout.apply(process.getInputStream());
-        out.start();
-
-        final Function<InputStream, OutputConsumer> stde = command.expectations.stderr;
-        if (stde == null) {
-            err = null;
-        } else {
-            err = stde.apply(process.getErrorStream());
-            err.start();
-        }
-
+        this.asserts = asserts;
+        this.exitCodeAssert = exitCodeAssert;
+        this.out = out;
+        this.err = err;
         this.shutDownHook = new Thread(new Runnable() {
             @Override
             public void run() {
@@ -144,14 +143,14 @@ public class CommandProcess implements Closeable {
             }
         } while (System.currentTimeMillis() - startMillisTime <= timeoutMs);
         return new CommandResult(
-                command,
+                cmdArrayString,
                 -1,
                 Duration.ofMillis(System.currentTimeMillis() - startMillisTime),
                 out.byteCount(),
                 err.byteCount(),
                 new TimeoutAssertionError(
-                        String.format("Command has not terminated within %d ms: %s", timeoutMs, command.cmdArrayString)),
-                joinAsserts());
+                        String.format("Command has not terminated within %d ms: %s", timeoutMs, cmdArrayString)),
+                asserts);
     }
 
     CommandResult terminated(long startMillisTime) {
@@ -172,20 +171,15 @@ public class CommandProcess implements Closeable {
             throw new RuntimeException("Interrupted", e);
         }
 
-        command.expectations.exitCodeAssert.exitCode(exitCode);
+        exitCodeAssert.exitCode(exitCode);
         return new CommandResult(
-                command,
+                cmdArrayString,
                 exitCode,
                 Duration.ofMillis(System.currentTimeMillis() - startMillisTime),
                 out.byteCount(),
                 err != null ? err.byteCount() : 0,
                 null,
-                joinAsserts());
-    }
-
-    Assert joinAsserts() {
-        return err == null ? Assert.all(out, command.expectations.exitCodeAssert)
-                : Assert.all(out, err, command.expectations.exitCodeAssert);
+                asserts);
     }
 
 }
