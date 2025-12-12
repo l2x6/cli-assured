@@ -439,19 +439,19 @@ public class JavaTest {
         Assertions.assertThat(cd.resolve("hello.txt")).isRegularFile().hasContent("Hello minimalExecute");
     }
 
-    static StreamExpectations.Builder run(String... args) {
+    static StreamExpectations.StreamExpectationsBuilder run(String... args) {
         return command(args)
                 .expect()
                 .stdout();
     }
 
-    static StreamExpectations.Builder runErr(String... args) {
+    static StreamExpectations.StreamExpectationsBuilder runErr(String... args) {
         return command(args)
                 .expect()
                 .stderr();
     }
 
-    static Command.Builder command(String... args) {
+    static Command.CommandBuilder command(String... args) {
         final String testAppArtifactId = "cli-assured-test-app";
         final String version = System.getProperty("project.version");
         Path testAppJar = Paths.get("../" + testAppArtifactId + "/target/" + testAppArtifactId + "-" + version + ".jar")

@@ -44,7 +44,7 @@ public class CommandResult {
      * Assert that the execution of the command was successful, namely that
      * <ul>
      * <li>No exception was thrown
-     * <li>All assertions defined via {@link Command.Builder#expect()} are satisfied
+     * <li>All assertions defined via {@link Command.CommandBuilder#expect()} are satisfied
      * </ul>
      *
      * @return this {@link CommandResult}

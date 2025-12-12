@@ -36,47 +36,47 @@ public class Expectations {
         this.exitCodeAssert = Objects.requireNonNull(exitCodeAssert, "exitCodeAssert");
     }
 
-    public static class Builder {
+    public static class ExpectationsBuilder {
         private static final Pattern MATCH_ANY_PATTERN = Pattern.compile(".*");
 
-        private final Command.Builder command;
+        private final Command.CommandBuilder command;
         private Function<InputStream, OutputConsumer> stdoutAsserts;
         private Function<InputStream, OutputConsumer> stderrAsserts;
         private ExitCodeAssert exitCodeAssert;
 
         private boolean stderrToStdout;
 
-        Builder(org.l2x6.cli.assured.Command.Builder command) {
+        ExpectationsBuilder(org.l2x6.cli.assured.Command.CommandBuilder command) {
             this.command = command;
         }
 
         /**
-         * @return new {@link OutputConsumer.Builder}
+         * @return new {@link OutputConsumer.CommandBuilder}
          * @since  0.0.1
          */
-        public StreamExpectations.Builder stdout() {
-            return new StreamExpectations.Builder(this::stdout, Stream.stdout);
+        public StreamExpectations.StreamExpectationsBuilder stdout() {
+            return new StreamExpectations.StreamExpectationsBuilder(this::stdout, Stream.stdout);
         }
 
         /**
-         * @return new {@link OutputConsumer.Builder}
+         * @return new {@link OutputConsumer.CommandBuilder}
          * @since  0.0.1
          */
-        public StreamExpectations.Builder stderr() {
+        public StreamExpectations.StreamExpectationsBuilder stderr() {
             if (stderrToStdout) {
                 throw new IllegalStateException(
                         "You cannot set any assertions on stderr while you are redirecting stderr to stdout");
             }
-            return new StreamExpectations.Builder(this::stderr, Stream.stderr);
+            return new StreamExpectations.StreamExpectationsBuilder(this::stderr, Stream.stderr);
         }
 
         /**
          * Enable the redirection of {@code stderr} to {@code stdout}
          *
-         * @return this {@link Builder}
+         * @return this {@link ExpectationsBuilder}
          * @since  0.0.1
          */
-        public Builder stderrToStdout() {
+        public ExpectationsBuilder stderrToStdout() {
             this.stderrToStdout |= true;
             return this;
         }
@@ -85,20 +85,20 @@ public class Expectations {
          * Assert that the process exits with any the given {@code expectedExitCodes}.
          *
          * @param  expectedExitCodes the exit codes to assert
-         * @return                   this {@link Builder}
+         * @return                   this {@link ExpectationsBuilder}
          * @since                    0.0.1
          */
-        public Builder exitCode(int... expectedExitCodes) {
+        public ExpectationsBuilder exitCode(int... expectedExitCodes) {
             this.exitCodeAssert = ExitCodeAssert.any(expectedExitCodes);
             return this;
         }
 
-        Builder stdout(Function<InputStream, OutputConsumer> stdoutAsserts) {
+        ExpectationsBuilder stdout(Function<InputStream, OutputConsumer> stdoutAsserts) {
             this.stdoutAsserts = stdoutAsserts;
             return this;
         }
 
-        Builder stderr(Function<InputStream, OutputConsumer> stderrAsserts) {
+        ExpectationsBuilder stderr(Function<InputStream, OutputConsumer> stderrAsserts) {
             this.stderrAsserts = stderrAsserts;
             return this;
         }
@@ -120,7 +120,7 @@ public class Expectations {
         }
 
         /**
-         * Build new {@link Expectations}, pass them to the parent {@link Command.Builder}
+         * Build new {@link Expectations}, pass them to the parent {@link Command.CommandBuilder}
          * and start the command.
          *
          * @return a new {@link CommandProcess}
@@ -132,7 +132,7 @@ public class Expectations {
         }
 
         /**
-         * Build new {@link Expectations}, pass them to the parent {@link Command.Builder},
+         * Build new {@link Expectations}, pass them to the parent {@link Command.CommandBuilder},
          * start the {@link CommandProcess} and awaits (potentially indefinitely) its termination.
          * A shorthand for {@link #start()}.{@link CommandProcess#awaitTermination() awaitTermination()}
          *
@@ -144,7 +144,8 @@ public class Expectations {
         }
 
         /**
-         * Build new {@link Expectations}, pass them to the parent {@link Command.Builder} and the {@link CommandProcess} and
+         * Build new {@link Expectations}, pass them to the parent {@link Command.CommandBuilder} and the {@link CommandProcess}
+         * and
          * awaits (potentially indefinitely) its termination at most for the specified
          * duration.
          * A shorthand for {@link #start()}.{@link CommandProcess#awaitTermination(Duration) awaitTermination(Duration)}
@@ -159,7 +160,8 @@ public class Expectations {
         }
 
         /**
-         * Build new {@link Expectations}, pass them to the parent {@link Command.Builder} and the {@link CommandProcess} and
+         * Build new {@link Expectations}, pass them to the parent {@link Command.CommandBuilder} and the {@link CommandProcess}
+         * and
          * awaits (potentially indefinitely) its termination at most for the specified
          * timeout in milliseconds.
          * A shorthand for {@link #start()}.{@link CommandProcess#awaitTermination(Duration) awaitTermination(Duration)}
@@ -173,7 +175,7 @@ public class Expectations {
             return parent().execute(timeoutMs);
         }
 
-        Command.Builder parent() {
+        Command.CommandBuilder parent() {
             return command.expect(build());
         }
 

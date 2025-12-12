@@ -19,7 +19,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
-import org.l2x6.cli.assured.Expectations.Builder;
+import org.l2x6.cli.assured.Expectations.ExpectationsBuilder;
 import org.slf4j.LoggerFactory;
 
 /**
@@ -133,14 +133,14 @@ public class Command {
         return result;
     }
 
-    public static class Builder {
+    public static class CommandBuilder {
         private String executable;
         private List<String> args = new ArrayList<>();
         private Map<String, String> env = new LinkedHashMap<>();
         private Path cd;
         private Expectations expectations;
 
-        Builder() {
+        CommandBuilder() {
         }
 
         /**
@@ -150,10 +150,10 @@ public class Command {
          *                    if the given command can be found in {@code PATH} environment variable
          * @param  arguments  the command arguments
          *
-         * @return            this {@link Builder}
+         * @return            this {@link CommandBuilder}
          * @since             0.0.1
          */
-        public Builder command(String executable, String... arguments) {
+        public CommandBuilder command(String executable, String... arguments) {
             this.executable = executable;
             for (String a : arguments) {
                 this.args.add(a);
@@ -164,10 +164,10 @@ public class Command {
         /**
          * @param  executable an absolute or relative (to the current directory) path to the executable or a plain command name
          *                    if the given command can be found in {@code PATH} environment variable
-         * @return            this {@link Builder}
+         * @return            this {@link CommandBuilder}
          * @since             0.0.1
          */
-        public Builder executable(String executable) {
+        public CommandBuilder executable(String executable) {
             this.executable = executable;
             return this;
         }
@@ -175,10 +175,10 @@ public class Command {
         /**
          * Sets the java command of the current JVM set as the {@link #executable}
          *
-         * @return this {@link Builder}
+         * @return this {@link CommandBuilder}
          * @since  0.0.1
          */
-        public Builder java() {
+        public CommandBuilder java() {
             Path javaHome = Paths.get(System.getProperty("java.home"));
             Path java = javaHome.resolve("bin/java");
             if (Files.isRegularFile(java)) {
@@ -195,10 +195,10 @@ public class Command {
          * Add a single command argument
          *
          * @param  arg the argument to add
-         * @return     this {@link Builder}
+         * @return     this {@link CommandBuilder}
          * @since      0.0.1
          */
-        public Builder arg(String arg) {
+        public CommandBuilder arg(String arg) {
             this.args.add(arg);
             return this;
         }
@@ -207,10 +207,10 @@ public class Command {
          * Add multiple command arguments
          *
          * @param  args the arguments to add
-         * @return      this {@link Builder}
+         * @return      this {@link CommandBuilder}
          * @since       0.0.1
          */
-        public Builder args(String... args) {
+        public CommandBuilder args(String... args) {
             for (String arg : args) {
                 this.args.add(arg);
             }
@@ -221,10 +221,10 @@ public class Command {
          * Add multiple command arguments
          *
          * @param  args the arguments to add
-         * @return      this {@link Builder}
+         * @return      this {@link CommandBuilder}
          * @since       0.0.1
          */
-        public Builder args(Collection<String> args) {
+        public CommandBuilder args(Collection<String> args) {
             this.args.addAll(args);
             return this;
         }
@@ -234,10 +234,10 @@ public class Command {
          *
          * @param  name  name of the variable to add
          * @param  value value of the variable to add
-         * @return       this {@link Builder}
+         * @return       this {@link CommandBuilder}
          * @since        0.0.1
          */
-        public Builder envVar(String name, String value) {
+        public CommandBuilder envVar(String name, String value) {
             this.env.put(name, value);
             return this;
         }
@@ -246,10 +246,10 @@ public class Command {
          * Set multiple environment variables for the command
          *
          * @param  env the variables to add
-         * @return     this {@link Builder}
+         * @return     this {@link CommandBuilder}
          * @since      0.0.1
          */
-        public Builder env(Map<String, String> env) {
+        public CommandBuilder env(Map<String, String> env) {
             this.env.putAll(env);
             return this;
         }
@@ -258,10 +258,10 @@ public class Command {
          * Set multiple environment variables for the command
          *
          * @param  env the variables to add
-         * @return     this {@link Builder}
+         * @return     this {@link CommandBuilder}
          * @since      0.0.1
          */
-        public Builder env(String... env) {
+        public CommandBuilder env(String... env) {
             int cnt = env.length;
             if (cnt % 2 != 0) {
                 throw new IllegalArgumentException("env(String[]) accepts only even number of arguments");
@@ -277,30 +277,30 @@ public class Command {
          * Set the given {@code workDirectory} to the undelying {@link Process}
          *
          * @param  workDirectory the work directory of the undelying {@link Process}
-         * @return               this {@link Builder}
+         * @return               this {@link CommandBuilder}
          * @since                0.0.1
          */
-        public Builder cd(Path workDirectory) {
+        public CommandBuilder cd(Path workDirectory) {
             this.cd = workDirectory;
             return this;
         }
 
         /**
-         * @return a new {@link Expectations.Builder}
+         * @return a new {@link Expectations.ExpectationsBuilder}
          * @since  0.0.1
          */
-        public Expectations.Builder expect() {
-            return new Expectations.Builder(this);
+        public Expectations.ExpectationsBuilder expect() {
+            return new Expectations.ExpectationsBuilder(this);
         }
 
         /**
          * Impose the given {@link Expectations} on the command execution.
          *
          * @param  expectations the Expectations to set
-         * @return              this {@link Builder}
+         * @return              this {@link CommandBuilder}
          * @since               0.0.1
          */
-        Builder expect(Expectations expectations) {
+        CommandBuilder expect(Expectations expectations) {
             this.expectations = expectations;
             return this;
         }
