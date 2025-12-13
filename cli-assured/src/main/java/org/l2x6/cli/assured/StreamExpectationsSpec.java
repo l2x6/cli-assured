@@ -107,7 +107,7 @@ public class StreamExpectationsSpec {
      */
     public StreamExpectationsSpec hasLines(String... lines) {
         return new StreamExpectationsSpec(expectations, stream,
-                CliAssertUtils.join(this.asserts, LineAssert.hasLines(Arrays.asList(lines))), byteCountAssert, charset,
+                CliAssertUtils.join(this.asserts, LineAssert.hasLines(stream, Arrays.asList(lines))), byteCountAssert, charset,
                 redirect);
     }
 
@@ -120,7 +120,7 @@ public class StreamExpectationsSpec {
      */
     public StreamExpectationsSpec hasLines(Collection<String> lines) {
         return new StreamExpectationsSpec(expectations, stream,
-                CliAssertUtils.join(this.asserts, LineAssert.hasLines(lines)), byteCountAssert, charset, redirect);
+                CliAssertUtils.join(this.asserts, LineAssert.hasLines(stream, lines)), byteCountAssert, charset, redirect);
     }
 
     /**
@@ -132,7 +132,8 @@ public class StreamExpectationsSpec {
      */
     public StreamExpectationsSpec doesNotHaveLines(String... lines) {
         return new StreamExpectationsSpec(expectations, stream,
-                CliAssertUtils.join(this.asserts, LineAssert.doesNotHaveLines(Arrays.asList(lines))), byteCountAssert, charset,
+                CliAssertUtils.join(this.asserts, LineAssert.doesNotHaveLines(stream, Arrays.asList(lines))), byteCountAssert,
+                charset,
                 redirect);
     }
 
@@ -145,7 +146,8 @@ public class StreamExpectationsSpec {
      */
     public StreamExpectationsSpec doesNotHaveLines(Collection<String> lines) {
         return new StreamExpectationsSpec(expectations, stream,
-                CliAssertUtils.join(this.asserts, LineAssert.doesNotHaveLines(lines)), byteCountAssert, charset, redirect);
+                CliAssertUtils.join(this.asserts, LineAssert.doesNotHaveLines(stream, lines)), byteCountAssert, charset,
+                redirect);
     }
 
     /**
@@ -158,7 +160,7 @@ public class StreamExpectationsSpec {
      */
     public StreamExpectationsSpec hasLineCount(int expectedLineCount) {
         return new StreamExpectationsSpec(expectations, stream,
-                CliAssertUtils.join(this.asserts, LineAssert.hasLineCount(expectedLineCount)), byteCountAssert, charset,
+                CliAssertUtils.join(this.asserts, LineAssert.hasLineCount(stream, expectedLineCount)), byteCountAssert, charset,
                 redirect);
     }
 
@@ -174,7 +176,8 @@ public class StreamExpectationsSpec {
      */
     public StreamExpectationsSpec hasLineCount(Predicate<Integer> expected, String description) {
         return new StreamExpectationsSpec(expectations, stream,
-                CliAssertUtils.join(this.asserts, LineAssert.hasLineCount(expected, description)), byteCountAssert, charset,
+                CliAssertUtils.join(this.asserts, LineAssert.hasLineCount(stream, expected, description)), byteCountAssert,
+                charset,
                 redirect);
     }
 
@@ -228,7 +231,8 @@ public class StreamExpectationsSpec {
      */
     public StreamExpectationsSpec hasLinesContaining(String... substrings) {
         return new StreamExpectationsSpec(expectations, stream,
-                CliAssertUtils.join(this.asserts, LineAssert.hasLinesContaining(Arrays.asList(substrings))), byteCountAssert,
+                CliAssertUtils.join(this.asserts, LineAssert.hasLinesContaining(stream, Arrays.asList(substrings))),
+                byteCountAssert,
                 charset, redirect);
     }
 
@@ -242,7 +246,7 @@ public class StreamExpectationsSpec {
      */
     public StreamExpectationsSpec hasLinesContaining(Collection<String> substrings) {
         return new StreamExpectationsSpec(expectations, stream,
-                CliAssertUtils.join(this.asserts, LineAssert.hasLinesContaining(substrings)), byteCountAssert, charset,
+                CliAssertUtils.join(this.asserts, LineAssert.hasLinesContaining(stream, substrings)), byteCountAssert, charset,
                 redirect);
     }
 
@@ -255,7 +259,7 @@ public class StreamExpectationsSpec {
      */
     public StreamExpectationsSpec doesNotHaveLinesContaining(String... substrings) {
         return new StreamExpectationsSpec(expectations, stream,
-                CliAssertUtils.join(this.asserts, LineAssert.doesNotHaveLinesContaining(Arrays.asList(substrings))),
+                CliAssertUtils.join(this.asserts, LineAssert.doesNotHaveLinesContaining(stream, Arrays.asList(substrings))),
                 byteCountAssert, charset, redirect);
     }
 
@@ -268,7 +272,8 @@ public class StreamExpectationsSpec {
      */
     public StreamExpectationsSpec doesNotHaveLinesContaining(Collection<String> substrings) {
         return new StreamExpectationsSpec(expectations, stream,
-                CliAssertUtils.join(this.asserts, LineAssert.doesNotHaveLinesContaining(substrings)), byteCountAssert, charset,
+                CliAssertUtils.join(this.asserts, LineAssert.doesNotHaveLinesContaining(stream, substrings)), byteCountAssert,
+                charset,
                 redirect);
     }
 
@@ -283,7 +288,7 @@ public class StreamExpectationsSpec {
      */
     public StreamExpectationsSpec hasLinesContainingCaseInsensitive(String... substrings) {
         return new StreamExpectationsSpec(expectations, stream,
-                CliAssertUtils.join(this.asserts, LineAssert.hasLinesContainingCaseInsensitive(
+                CliAssertUtils.join(this.asserts, LineAssert.hasLinesContainingCaseInsensitive(stream,
                         Stream.of(substrings).map(s -> s.toLowerCase(Locale.US)).collect(Collectors.toList()), Locale.US)),
                 byteCountAssert, charset, redirect);
     }
@@ -299,7 +304,7 @@ public class StreamExpectationsSpec {
      */
     public StreamExpectationsSpec hasLinesContainingCaseInsensitive(Collection<String> substrings) {
         return new StreamExpectationsSpec(expectations, stream,
-                CliAssertUtils.join(this.asserts, LineAssert.hasLinesContainingCaseInsensitive(
+                CliAssertUtils.join(this.asserts, LineAssert.hasLinesContainingCaseInsensitive(stream,
                         substrings.stream().map(s -> s.toLowerCase(Locale.US)).collect(Collectors.toList()), Locale.US)),
                 byteCountAssert, charset, redirect);
     }
@@ -314,7 +319,7 @@ public class StreamExpectationsSpec {
      */
     public StreamExpectationsSpec doesNotHaveLinesContainingCaseInsensitive(String... substrings) {
         return new StreamExpectationsSpec(expectations, stream,
-                CliAssertUtils.join(this.asserts, LineAssert.doesNotHaveLinesContainingCaseInsensitive(
+                CliAssertUtils.join(this.asserts, LineAssert.doesNotHaveLinesContainingCaseInsensitive(stream,
                         Stream.of(substrings).map(s -> s.toLowerCase(Locale.US)).collect(Collectors.toList()), Locale.US)),
                 byteCountAssert, charset, redirect);
     }
@@ -329,7 +334,7 @@ public class StreamExpectationsSpec {
      */
     public StreamExpectationsSpec doesNotHaveLinesContainingCaseInsensitive(Collection<String> substrings) {
         return new StreamExpectationsSpec(expectations, stream,
-                CliAssertUtils.join(this.asserts, LineAssert.doesNotHaveLinesContainingCaseInsensitive(
+                CliAssertUtils.join(this.asserts, LineAssert.doesNotHaveLinesContainingCaseInsensitive(stream,
                         substrings.stream().map(s -> s.toLowerCase(Locale.US)).collect(Collectors.toList()), Locale.US)),
                 byteCountAssert, charset, redirect);
     }
@@ -345,7 +350,8 @@ public class StreamExpectationsSpec {
      */
     public StreamExpectationsSpec hasLinesMatching(Collection<String> regex) {
         return new StreamExpectationsSpec(expectations, stream,
-                CliAssertUtils.join(this.asserts, LineAssert.hasLinesMatching(regex)), byteCountAssert, charset, redirect);
+                CliAssertUtils.join(this.asserts, LineAssert.hasLinesMatching(stream, regex)), byteCountAssert, charset,
+                redirect);
     }
 
     /**
@@ -359,7 +365,8 @@ public class StreamExpectationsSpec {
      */
     public StreamExpectationsSpec hasLinesMatching(String... regex) {
         return new StreamExpectationsSpec(expectations, stream,
-                CliAssertUtils.join(this.asserts, LineAssert.hasLinesMatching(Arrays.asList(regex))), byteCountAssert, charset,
+                CliAssertUtils.join(this.asserts, LineAssert.hasLinesMatching(stream, Arrays.asList(regex))), byteCountAssert,
+                charset,
                 redirect);
     }
 
@@ -374,7 +381,8 @@ public class StreamExpectationsSpec {
      */
     public StreamExpectationsSpec hasLinesMatching(Pattern... regex) {
         return new StreamExpectationsSpec(expectations, stream,
-                CliAssertUtils.join(this.asserts, LineAssert.hasLinesMatchingPatterns(Arrays.asList(regex))), byteCountAssert,
+                CliAssertUtils.join(this.asserts, LineAssert.hasLinesMatchingPatterns(stream, Arrays.asList(regex))),
+                byteCountAssert,
                 charset, redirect);
     }
 
@@ -388,7 +396,7 @@ public class StreamExpectationsSpec {
      */
     public StreamExpectationsSpec doesNotHaveLinesMatching(Collection<String> regex) {
         return new StreamExpectationsSpec(expectations, stream,
-                CliAssertUtils.join(this.asserts, LineAssert.doesNotHaveLinesMatching(regex)), byteCountAssert, charset,
+                CliAssertUtils.join(this.asserts, LineAssert.doesNotHaveLinesMatching(stream, regex)), byteCountAssert, charset,
                 redirect);
     }
 
@@ -402,7 +410,8 @@ public class StreamExpectationsSpec {
      */
     public StreamExpectationsSpec doesNotHaveLinesMatching(String... regex) {
         return new StreamExpectationsSpec(expectations, stream,
-                CliAssertUtils.join(this.asserts, LineAssert.doesNotHaveLinesMatching(Arrays.asList(regex))), byteCountAssert,
+                CliAssertUtils.join(this.asserts, LineAssert.doesNotHaveLinesMatching(stream, Arrays.asList(regex))),
+                byteCountAssert,
                 charset, redirect);
     }
 
@@ -416,7 +425,7 @@ public class StreamExpectationsSpec {
      */
     public StreamExpectationsSpec doesNotHaveLinesMatching(Pattern... regex) {
         return new StreamExpectationsSpec(expectations, stream,
-                CliAssertUtils.join(this.asserts, LineAssert.doesNotHaveLinesMatchingPatterns(Arrays.asList(regex))),
+                CliAssertUtils.join(this.asserts, LineAssert.doesNotHaveLinesMatchingPatterns(stream, Arrays.asList(regex))),
                 byteCountAssert, charset, redirect);
     }
 
@@ -471,7 +480,7 @@ public class StreamExpectationsSpec {
     public StreamExpectationsSpec log() {
         return new StreamExpectationsSpec(expectations, stream,
                 CliAssertUtils.join(this.asserts,
-                        LineAssert.log(LoggerFactory.getLogger("org.l2x6.cli.assured." + stream.name())::info)),
+                        LineAssert.log(stream, LoggerFactory.getLogger("org.l2x6.cli.assured." + stream.name())::info)),
                 byteCountAssert, charset, redirect);
     }
 
@@ -484,7 +493,8 @@ public class StreamExpectationsSpec {
      * @since         0.0.1
      */
     public StreamExpectationsSpec log(Consumer<String> logger) {
-        return new StreamExpectationsSpec(expectations, stream, CliAssertUtils.join(this.asserts, LineAssert.log(logger)),
+        return new StreamExpectationsSpec(expectations, stream,
+                CliAssertUtils.join(this.asserts, LineAssert.log(stream, logger)),
                 byteCountAssert, charset, redirect);
     }
 

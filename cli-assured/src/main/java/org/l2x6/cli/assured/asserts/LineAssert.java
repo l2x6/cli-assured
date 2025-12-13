@@ -18,11 +18,13 @@ import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import org.l2x6.cli.assured.StreamExpectationsSpec;
+import org.l2x6.cli.assured.StreamExpectationsSpec.ProcessOutput;
 
 /**
  * An assertion on a sequence of lines of a command output.
@@ -45,26 +47,29 @@ public interface LineAssert extends Assert {
     /**
      * Assert that the given lines are present in the underlying output stream among other lines in any order.
      *
-     * @param  lines the whole lines to look for
-     * @return       a new {@link LineAssert}
-     * @since        0.0.1
+     * @param  stream the output stream to watch
+     * @param  lines  the whole lines to look for
+     * @return        a new {@link LineAssert}
+     * @since         0.0.1
      */
-    static LineAssert hasLines(Collection<String> lines) {
+    static LineAssert hasLines(StreamExpectationsSpec.ProcessOutput stream, Collection<String> lines) {
         return new Internal.LinesAssert<String, String>(
                 Collections.unmodifiableList(new ArrayList<>(lines)),
                 new LinkedHashSet<>(lines),
                 (line, hits) -> hits.remove(line),
-                "Expected lines\n\n    %s\n\nto occur in any order, but lines\n\n    %s\n\ndid not occur");
+                "Expected lines\n\n    ${checks}\n\nto occur in ${stream} in any order, but lines\n\n    ${hits}\n\ndid not occur",
+                stream);
     }
 
     /**
      * Assert that the given lines are not present in the underlying output stream.
      *
-     * @param  lines the whole lines to look for
-     * @return       a new {@link LineAssert}
-     * @since        0.0.1
+     * @param  stream the output stream to watch
+     * @param  lines  the whole lines to look for
+     * @return        a new {@link LineAssert}
+     * @since         0.0.1
      */
-    static LineAssert doesNotHaveLines(Collection<String> lines) {
+    static LineAssert doesNotHaveLines(StreamExpectationsSpec.ProcessOutput stream, Collection<String> lines) {
         final Set<String> checks = Collections.unmodifiableSet(new LinkedHashSet<>(lines));
         return new Internal.LinesAssert<String, String>(
                 checks,
@@ -74,13 +79,14 @@ public interface LineAssert extends Assert {
                         hits.add(line);
                     }
                 },
-                "Expected none of the lines\n\n    %s\n\nto occur, but the following lines occurred:\n\n    %s\n\n");
+                "Expected none of the lines\n\n    ${checks}\n\nto occur in ${stream}, but the following lines occurred:\n\n    ${hits}\n\n",
+                stream);
     }
 
     /**
-     * Assert that no lines at all are not present in the underlying output stream.
+     * Assert that no content at all is produced by the associated output stream.
      *
-     * @param  stream
+     * @param  stream the output stream to watch
      *
      * @return        a new {@link LineAssert}
      * @since         0.0.1
@@ -88,22 +94,24 @@ public interface LineAssert extends Assert {
     static LineAssert doesNotHaveAnyLines(StreamExpectationsSpec.ProcessOutput stream) {
         return new Internal.LinesAssert<String, String>(
                 Collections.emptyList(),
-                new LinkedHashSet<>(),
+                new ArrayList<>(),
                 (line, hits) -> {
                     hits.add(line);
                 },
-                "Expected no lines at all to occur in " + stream + ", but the following lines occurred:\n\n    %s\n\n");
+                "Expected no content to occur in ${stream}, but the following occurred:\n\n    ${hits}\n\n",
+                stream);
     }
 
     /**
      * Assert that lines containing the given {@code substrings} are present in the underlying output stream among other
      * lines in any order.
      *
+     * @param  stream     the output stream to watch
      * @param  substrings the substrings to look for in the associated output stream
      * @return            a new {@link LineAssert}
      * @since             0.0.1
      */
-    static LineAssert hasLinesContaining(Collection<String> substrings) {
+    static LineAssert hasLinesContaining(StreamExpectationsSpec.ProcessOutput stream, Collection<String> substrings) {
         return new Internal.LinesAssert<String, String>(
                 Collections.unmodifiableList(new ArrayList<>(substrings)),
                 new LinkedHashSet<>(substrings),
@@ -115,17 +123,19 @@ public interface LineAssert extends Assert {
                         }
                     }
                 },
-                "Expected lines containing\n\n    %s\n\nto occur, but the following substrings did not occur:\n\n    %s\n\n");
+                "Expected lines containing\n\n    ${checks}\n\nto occur in ${stream}, but the following substrings did not occur:\n\n    ${hits}\n\n",
+                stream);
     }
 
     /**
      * Assert that lines containing the given {@code substrings} are not present in the underlying output stream.
      *
+     * @param  stream     the output stream to watch
      * @param  substrings the substrings to look for in the associated output stream
      * @return            a new {@link LineAssert}
      * @since             0.0.1
      */
-    static LineAssert doesNotHaveLinesContaining(Collection<String> substrings) {
+    static LineAssert doesNotHaveLinesContaining(StreamExpectationsSpec.ProcessOutput stream, Collection<String> substrings) {
         final List<String> checks = Collections.unmodifiableList(new ArrayList<>(substrings));
         return new Internal.LinesAssert<String, String>(
                 checks,
@@ -138,18 +148,21 @@ public interface LineAssert extends Assert {
                         }
                     }
                 },
-                "Expected no lines containing\n\n    %s\n\nto occur, but some of the substrings occur in lines\n\n    %s\n\n");
+                "Expected no lines containing\n\n    ${checks}\n\nto occur in ${stream}, but some of the substrings occur in lines\n\n    ${hits}\n\n",
+                stream);
     }
 
     /**
      * Assert that lines containing the given {@code substrings} (using case insensitive comparison) are present in the
      * underlying output stream among other lines in any order.
      *
+     * @param  stream     the output stream to watch
      * @param  substrings the substrings (must be in lower case already) to look for in the associated output stream
      * @return            a new {@link LineAssert}
      * @since             0.0.1
      */
-    static LineAssert hasLinesContainingCaseInsensitive(Collection<String> substrings, Locale locale) {
+    static LineAssert hasLinesContainingCaseInsensitive(StreamExpectationsSpec.ProcessOutput stream,
+            Collection<String> substrings, Locale locale) {
         return new Internal.LinesAssert<String, String>(
                 Collections.unmodifiableList(new ArrayList<>(substrings)),
                 new LinkedHashSet<>(substrings),
@@ -162,19 +175,22 @@ public interface LineAssert extends Assert {
                         }
                     }
                 },
-                "Expected lines containing using case insensitive comparison\n\n    %s\n\nto occur, but the following substrings did not occur:\n\n    %s\n\n");
+                "Expected lines containing using case insensitive comparison\n\n    ${checks}\n\nto occur in ${stream}, but the following substrings did not occur:\n\n    ${hits}\n\n",
+                stream);
     }
 
     /**
      * Assert that lines containing the given {@code substrings} (using case insensitive comparison) are not present in
      * the underlying output stream.
      *
+     * @param  stream     the output stream to watch
      * @param  substrings the substrings (must be in lower case already) to look for in the associated output stream
      * @param  locale     the locale to use to transform to lower case
      * @return            a new {@link LineAssert}
      * @since             0.0.1
      */
-    static LineAssert doesNotHaveLinesContainingCaseInsensitive(Collection<String> substrings, Locale locale) {
+    static LineAssert doesNotHaveLinesContainingCaseInsensitive(StreamExpectationsSpec.ProcessOutput stream,
+            Collection<String> substrings, Locale locale) {
         final List<String> checks = Collections.unmodifiableList(new ArrayList<>(substrings));
         return new Internal.LinesAssert<String, String>(
                 checks,
@@ -188,7 +204,8 @@ public interface LineAssert extends Assert {
                         }
                     }
                 },
-                "Expected no lines containing using case insensitive comparison\n\n    %s\n\nto occur, but some of the substrings occur in lines\n\n    %s\n\n");
+                "Expected no lines containing using case insensitive comparison\n\n    ${checks}\n\nto occur in ${stream}, but some of the substrings occur in lines\n\n    ${hits}\n\n",
+                stream);
     }
 
     /**
@@ -196,13 +213,14 @@ public interface LineAssert extends Assert {
      * lines in any order.
      * The regular expression is evaluated using {@link Matcher#find()} rather than {@link Matcher#matches()}
      *
+     * @param  stream the output stream to watch
      * @param  regex  the regular expressions to look for in the associated output stream
      * @param  locale the locale to use to transform to lower case
      * @return        a new {@link LineAssert}
      * @since         0.0.1
      */
-    static LineAssert hasLinesMatchingPatterns(Collection<Pattern> regex) {
-        return Internal.LinesAssert.containsMatching(regex);
+    static LineAssert hasLinesMatchingPatterns(StreamExpectationsSpec.ProcessOutput stream, Collection<Pattern> regex) {
+        return Internal.LinesAssert.containsMatching(stream, regex);
     }
 
     /**
@@ -210,76 +228,104 @@ public interface LineAssert extends Assert {
      * lines in any order.
      * The regular expression is evaluated using {@link Matcher#find()} rather than {@link Matcher#matches()}
      *
-     * @param  regex the regular expressions to look for in the associated output stream
-     * @return       a new {@link LineAssert}
-     * @since        0.0.1
+     * @param  stream the output stream to watch
+     * @param  regex  the regular expressions to look for in the associated output stream
+     * @return        a new {@link LineAssert}
+     * @since         0.0.1
      */
-    static LineAssert hasLinesMatching(Collection<String> regex) {
-        return Internal.LinesAssert.containsMatching(Internal.LinesAssert.compile(regex));
+    static LineAssert hasLinesMatching(StreamExpectationsSpec.ProcessOutput stream, Collection<String> regex) {
+        return Internal.LinesAssert.containsMatching(stream, Internal.LinesAssert.compile(regex));
     }
 
     /**
      * Assert that lines matching the given regular expressions are not present in the underlying output stream.
      * The regular expression is evaluated using {@link Matcher#find()} rather than {@link Matcher#matches()}
      *
-     * @param  regex the regular expressions to look for in the associated output stream
-     * @return       a new {@link LineAssert}
-     * @since        0.0.1
+     * @param  stream the output stream to watch
+     * @param  regex  the regular expressions to look for in the associated output stream
+     * @return        a new {@link LineAssert}
+     * @since         0.0.1
      */
-    static LineAssert doesNotHaveLinesMatchingPatterns(Collection<Pattern> regex) {
-        return Internal.LinesAssert.doesNotContainMatching(regex);
+    static LineAssert doesNotHaveLinesMatchingPatterns(StreamExpectationsSpec.ProcessOutput stream, Collection<Pattern> regex) {
+        return Internal.LinesAssert.doesNotContainMatching(stream, regex);
     }
 
     /**
      * Assert that lines matching the given regular expressions are not present in the underlying output stream.
      * The regular expression is evaluated using {@link Matcher#find()} rather than {@link Matcher#matches()}
      *
-     * @param  regex the regular expressions to look for in the associated output stream
-     * @return       a new {@link LineAssert}
-     * @since        0.0.1
+     * @param  stream the output stream to watch
+     * @param  regex  the regular expressions to look for in the associated output stream
+     * @return        a new {@link LineAssert}
+     * @since         0.0.1
      */
-    static LineAssert doesNotHaveLinesMatching(Collection<String> regex) {
-        return Internal.LinesAssert.doesNotContainMatching(Internal.LinesAssert.compile(regex));
+    static LineAssert doesNotHaveLinesMatching(StreamExpectationsSpec.ProcessOutput stream, Collection<String> regex) {
+        return Internal.LinesAssert.doesNotContainMatching(stream, Internal.LinesAssert.compile(regex));
     }
 
     /**
      * Assert that upon termination of the associated process, the underlying output stream has the given number of lines.
      *
+     * @param  stream            the output stream to watch
      * @param  expectedLineCount
      * @return                   a new {@link LineAssert}
      * @since                    0.0.1
      */
-    static LineAssert hasLineCount(int expectedLineCount) {
+    static LineAssert hasLineCount(StreamExpectationsSpec.ProcessOutput stream, int expectedLineCount) {
         return new Internal.LineCountAssert(actual -> actual.intValue() == expectedLineCount,
-                "Expected " + expectedLineCount + " lines but found %d lines");
+                "Expected " + expectedLineCount + " lines in ${stream} but found ${actual} lines", stream);
     }
 
     /**
      * Assert that upon termination of the associated process, the underlying output stream's number of lines satisfies
      * the given {@link Predicate}.
      *
+     * @param  stream      the output stream to watch
      * @param  expected    the condition the number of actual lines must satisfy
      * @param  description the description of a failure typically something like
-     *                     {@code "Expected number of lines <condition> but found %d lines"}
+     *                     {@code "Expected number of lines <condition> in ${stream} but found ${actual} lines"} where
+     *                     {@code <condition>} is your human readable criteria, like {@code greater that 42},
+     *                     <code>${stream}</code> is a placeholder that CLI Assured will replace by {@code stdout}
+     *                     or {@code stderr} and <code>${actual}</code> is a placeholder that CLI Assured will replace
+     *                     by the actual number of lines found in the associated output stream
+     *
      * @return             a new {@link LineAssert}
      * @since              0.0.1
      */
-    public static LineAssert hasLineCount(Predicate<Integer> expected, String description) {
-        return new Internal.LineCountAssert(expected, description);
+    public static LineAssert hasLineCount(StreamExpectationsSpec.ProcessOutput stream, Predicate<Integer> expected,
+            String description) {
+        return new Internal.LineCountAssert(expected, description, stream);
     }
 
     /**
      * Pass each line to the given {@link Consumer}. Handy for logging and other similar use cases.
      *
+     * @param  stream   the output stream to watch
      * @param  consumer the consumer to which all lines should be passed
      * @return          a new {@link LineAssert}
      * @since           0.0.1
      */
-    static LineAssert log(Consumer<String> consumer) {
+    static LineAssert log(StreamExpectationsSpec.ProcessOutput stream, Consumer<String> consumer) {
         return new Internal.ConsumerLineAssert(consumer);
     }
 
     static final class Internal {
+        private static final Pattern PLACE_HOLDER_PATTERN = Pattern.compile("\\$\\{([^\\}]+)\\}");
+
+        static String formatMessage(String message, Function<String, String> eval) {
+            Matcher m = PLACE_HOLDER_PATTERN.matcher(message);
+            StringBuffer sb = new StringBuffer();
+            while (m.find()) {
+                m.appendReplacement(sb, eval.apply(m.group(1)));
+            }
+            m.appendTail(sb);
+            return sb.toString();
+        }
+
+        static String list(Collection<? extends Object> list) {
+            return list.stream().map(Object::toString).collect(Collectors.joining("\n    "));
+        }
+
         static class ConsumerLineAssert implements LineAssert {
             private final Consumer<String> consumer;
 
@@ -304,20 +350,23 @@ public interface LineAssert extends Assert {
             private final Collection<C> checks;
             private final Collection<H> hits;
             private final BiConsumer<String, Collection<H>> lineConsumer;
-            private final String message;
+            private final String description;
+            private final StreamExpectationsSpec.ProcessOutput stream;
 
             private LinesAssert(
                     Collection<C> checks,
                     Collection<H> hits,
                     BiConsumer<String, Collection<H>> lineConsumer,
-                    String message) {
+                    String description,
+                    StreamExpectationsSpec.ProcessOutput stream) {
                 this.checks = Objects.requireNonNull(checks, "checks");
                 this.hits = Objects.requireNonNull(hits, "hits");
-                this.lineConsumer = lineConsumer;
-                this.message = message;
+                this.lineConsumer = Objects.requireNonNull(lineConsumer, "lineConsumer");
+                this.description = Objects.requireNonNull(description, "description");
+                this.stream = Objects.requireNonNull(stream, "stream");
             }
 
-            static LineAssert containsMatching(Collection<Pattern> checks) {
+            static LineAssert containsMatching(StreamExpectationsSpec.ProcessOutput stream, Collection<Pattern> checks) {
                 final Map<String, Pattern> hts = new LinkedHashMap<>();
                 checks.forEach(p -> hts.put(p.pattern(), p));
                 return new LinesAssert<Pattern, Pattern>(
@@ -331,10 +380,11 @@ public interface LineAssert extends Assert {
                                 }
                             }
                         },
-                        "Expected lines matching\n\n    %s\n\nto occur, but the following patterns did not match:\n\n    %s\n\n");
+                        "Expected lines matching\n\n    ${checks}\n\nto occur in ${stream}, but the following patterns did not match:\n\n    ${hits}\n\n",
+                        stream);
             }
 
-            static LineAssert doesNotContainMatching(Collection<Pattern> checks) {
+            static LineAssert doesNotContainMatching(StreamExpectationsSpec.ProcessOutput stream, Collection<Pattern> checks) {
                 return new LinesAssert<Pattern, String>(
                         checks,
                         new LinkedHashSet<>(),
@@ -346,7 +396,8 @@ public interface LineAssert extends Assert {
                                 }
                             }
                         },
-                        "Expected no lines matching\n\n    %s\n\nto occur, but some of the patterns matched the lines\n\n    %s\n\n");
+                        "Expected no lines matching\n\n    ${checks}\n\nto occur in ${stream}, but some of the patterns matched the lines\n\n    ${hits}\n\n",
+                        stream);
             }
 
             static Map<String, Pattern> toMap(Collection<Pattern> expectedPatterns) {
@@ -366,13 +417,23 @@ public interface LineAssert extends Assert {
             public void assertSatisfied() {
                 synchronized (hits) {
                     if (!hits.isEmpty()) {
-                        throw new AssertionError(String.format(message, list(checks), list(hits)));
+                        throw new AssertionError(formatMessage(description, this::eval));
                     }
                 }
             }
 
-            String list(Collection<? extends Object> list) {
-                return list.stream().map(Object::toString).collect(Collectors.joining("\n    "));
+            String eval(String key) {
+                switch (key) {
+                case "checks":
+                    return list(checks);
+                case "hits":
+                    return list(hits);
+                case "stream":
+                    return stream.name();
+                default:
+                    throw new IllegalArgumentException("Unexpected placeholder '" + key + "' in " + LineAssert.class.getName()
+                            + " description '" + description + "'.");
+                }
             }
 
             @Override
@@ -389,16 +450,31 @@ public interface LineAssert extends Assert {
             private final Predicate<Integer> expected;
             private final AtomicInteger actualCount = new AtomicInteger();
             private final String description;
+            private final StreamExpectationsSpec.ProcessOutput stream;
 
-            private LineCountAssert(Predicate<Integer> expected, String description) {
-                this.expected = expected;
-                this.description = description;
+            private LineCountAssert(Predicate<Integer> expected, String description,
+                    StreamExpectationsSpec.ProcessOutput stream) {
+                this.expected = Objects.requireNonNull(expected, "expected");
+                this.description = Objects.requireNonNull(description, "description");
+                this.stream = Objects.requireNonNull(stream, "stream");
             }
 
             @Override
             public void assertSatisfied() {
                 if (!expected.test(actualCount.get())) {
-                    throw new AssertionError(String.format(description, actualCount.get()));
+                    throw new AssertionError(formatMessage(description, this::eval));
+                }
+            }
+
+            String eval(String key) {
+                switch (key) {
+                case "actual":
+                    return String.valueOf(actualCount);
+                case "stream":
+                    return stream.name();
+                default:
+                    throw new IllegalArgumentException("Unexpected placeholder '" + key + "' in " + LineAssert.class.getName()
+                            + " description '" + description + "'.");
                 }
             }
 
