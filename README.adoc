@@ -23,7 +23,9 @@ Find the latest version on https://central.sonatype.com/artifact/org.l2x6.cli-as
 
 == Usage
 
-=== Test an executable available in `PATH`
+=== Basic syntax
+
+Test an executable available in `PATH`
 
 [source,java]
 ----
@@ -31,22 +33,43 @@ import org.l2x6.cli.assured.CliAssured;
 
 CliAssured
     .command("echo", "CLI Assured rocks!")
-    .expect()
     .stderrToStdout() // redirect stderr to stdout
-    .stdout() // Assertions for stdout
-              // The same can be done with stderr(),
-              // in case you didn't call stderrToStdout()
-        .hasLines("CLI Assured rocks!")
-        .hasLinesContaining("rocks")
-        .hasLinesMatching("CLI.*rocks")
-        .doesNotHaveLinesContainingCaseInsensitive("error")
-        .log() // Pass every line to org.l2x6.cli.assured.stdout logger
-        .hasLineCount(1)
-        .redirect(Path.of("hello.txt")) // redirect the output to hello.txt
-        // End of assertions for stdout
-    .exitCode(0) // could be omitted as exit code 0 is enforced by default
+    .then()
+        // Assertions for stdout
+        // The same can be done with stderr(), unless you called stderrToStdout()
+        .stdout()
+            .hasLines("CLI Assured rocks!")
+            .hasLinesContaining("rocks")
+            .hasLinesMatching("CLI.*rocks")
+            .doesNotHaveLinesContainingCaseInsensitive("error")
+            .log() // Pass every line to org.l2x6.cli.assured.stdout logger
+            .hasLineCount(1)
+            .redirect(Path.of("hello.txt")) // redirect the output to hello.txt
+        .exitCode(0) // could be omitted as exit code 0 is enforced by default
     .execute()
     .assertSuccess(); // Report all assertion errors
+----
+
+=== Given-when-then
+
+If you are a fan of Behavior-Driven testing, there is some syntactic sugar for you:
+
+[source,java]
+----
+import org.l2x6.cli.assured.CliAssured;
+
+CliAssured
+    .given()
+        .env("GREETING", "CLI Assured rocks!")
+    .when()
+        .command("sh", "-c", "echo $GREETING")
+    .then()
+        .stdout()
+            .hasLines("CLI Assured rocks!")
+            .hasLineCount(1)
+        .exitCode(0)
+    .execute()
+    .assertSuccess();
 ----
 
 === `CliAssured.java()` - call the `java` executable of the current JVM
@@ -62,7 +85,7 @@ import org.l2x6.cli.assured.CliAssured;
 
 CliAssured
     .java()
-    .args("-jar", "path/to/my.jar")
+        .args("-jar", "path/to/my.jar")
     .execute()
     .assertSuccess();
 ----
@@ -88,9 +111,10 @@ import org.l2x6.cli.assured.CliAssured;
 
 CliAssured
     .java()
-    .args("path/to/Hello.java", "Joe")
-    .stdout() // Assertions for stdout follow (the same can be done with stderr())
-    .hasLines("Hello Joe")
+       .args("path/to/Hello.java", "Joe")
+    .then()
+        .stdout()
+            .hasLines("Hello Joe")
     .execute()
     .assertSuccess();
 ----

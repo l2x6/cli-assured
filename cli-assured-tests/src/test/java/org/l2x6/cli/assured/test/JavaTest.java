@@ -36,7 +36,7 @@ public class JavaTest {
 
         try {
             command("hello", "Joe")
-                    .expect()
+                    .then()
                     .stderr()
                     .hasLines("Hello Joe")
                     .start()
@@ -53,7 +53,7 @@ public class JavaTest {
 
         command("helloErr", "Joe")
                 .stderrToStdout()
-                .expect()
+                .then()
                 .stdout()
                 .hasLines("Hello stderr Joe")
                 .start()
@@ -62,7 +62,7 @@ public class JavaTest {
 
         Assertions.assertThatThrownBy(command("helloErr", "Joe")
                 .stderrToStdout()
-                .expect()::stderr)
+                .then()::stderr)
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessage(
                         "You cannot set any assertions on stderr while you are redirecting stderr to stdout");
@@ -73,7 +73,7 @@ public class JavaTest {
     void stderr() {
 
         command("helloErr", "Joe")
-                .expect()
+                .then()
                 .stderr()
                 .hasLines("Hello stderr Joe")
                 .start()
@@ -114,7 +114,7 @@ public class JavaTest {
 
         try {
             command("hello", "Joe")
-                    .expect()
+                    .then()
                     .stderr()
                     .hasLinesContaining("lo J")
                     .start()
@@ -137,7 +137,7 @@ public class JavaTest {
 
         try {
             command("hello", "Joe")
-                    .expect()
+                    .then()
                     .stderr()
                     .hasLinesMatching("lo J.e")
                     .start()
@@ -254,7 +254,7 @@ public class JavaTest {
         Files.createDirectories(cd);
         command("write", "Hello Dolly", "hello.txt")
                 .cd(cd)
-                .expect()
+                .then()
                 .stdout()
                 .hasLineCount(0)
                 .stderr()
@@ -407,7 +407,7 @@ public class JavaTest {
         Files.createDirectories(cd);
         command("write", "Hello minimalExecute", "hello.txt")
                 .cd(cd)
-                .expect()
+                .then()
                 .execute()
                 .assertSuccess();
         Assertions.assertThat(cd.resolve("hello.txt")).isRegularFile().hasContent("Hello minimalExecute");
@@ -419,7 +419,7 @@ public class JavaTest {
         Files.createDirectories(cd);
         command("write", "Hello minimalExecute", "hello.txt")
                 .cd(cd)
-                .expect()
+                .then()
                 .stdout()
                 .execute()
                 .assertSuccess();
@@ -432,7 +432,7 @@ public class JavaTest {
         Files.createDirectories(cd);
         command("write", "Hello minimalExecute", "hello.txt")
                 .cd(cd)
-                .expect()
+                .then()
                 .stderr()
                 .execute()
                 .assertSuccess();
@@ -441,13 +441,13 @@ public class JavaTest {
 
     static StreamExpectationsSpec run(String... args) {
         return command(args)
-                .expect()
+                .then()
                 .stdout();
     }
 
     static StreamExpectationsSpec runErr(String... args) {
         return command(args)
-                .expect()
+                .then()
                 .stderr();
     }
 

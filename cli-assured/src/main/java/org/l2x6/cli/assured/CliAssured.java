@@ -37,7 +37,6 @@ public class CliAssured {
      * @param  args       the arguments to set on the returned {@link CommandSpec}
      * @return            a {@link CommandSpec} with the specified {@code executable} and {@code args} set
      * @since             0.0.1
-     * @return
      */
     public static CommandSpec command(String executable, String... args) {
         return new CommandSpec(executable, Collections.unmodifiableList(new ArrayList<>(Arrays.asList(args))));

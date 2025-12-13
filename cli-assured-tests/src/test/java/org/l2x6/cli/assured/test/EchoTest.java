@@ -5,6 +5,8 @@
 package org.l2x6.cli.assured.test;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.DisabledOnOs;
+import org.junit.jupiter.api.condition.OS;
 import org.l2x6.cli.assured.CliAssured;
 
 public class EchoTest {
@@ -12,7 +14,7 @@ public class EchoTest {
     @Test
     void echo() {
         CliAssured.command("echo", "CLI Assured rocks!")
-                .expect()
+                .then()
                 .stdout()
                 .hasLines("CLI Assured rocks!")
                 .hasLineCount(1)
@@ -20,6 +22,25 @@ public class EchoTest {
                 .start()
                 .awaitTermination()
                 .assertSuccess();
+    }
+
+    @Test
+    @DisabledOnOs(OS.WINDOWS)
+    void echoGwd() {
+        // @formatter:off
+        CliAssured
+                .given()
+                    .env("GREETING", "CLI Assured rocks!")
+                .when()
+                    .command("sh", "-c", "echo $GREETING")
+                .then()
+                    .stdout()
+                    .hasLines("CLI Assured rocks!")
+                    .hasLineCount(1)
+                    .exitCode(0)
+                .execute()
+                .assertSuccess();
+        // @formatter:on
     }
 
 }

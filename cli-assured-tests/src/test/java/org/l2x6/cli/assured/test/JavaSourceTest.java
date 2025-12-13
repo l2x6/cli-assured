@@ -25,7 +25,7 @@ public class JavaSourceTest {
                 .java()
                 .args(helloJava.toString())
                 .args("Joe")
-                .expect()
+                .then()
                 .stdout()
                 .hasLines("Hello Joe")
                 .hasLineCount(1)

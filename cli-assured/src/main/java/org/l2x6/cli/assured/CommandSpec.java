@@ -217,11 +217,37 @@ public class CommandSpec {
         return new CommandSpec(executable, arguments, env, cd, expectations, true);
     }
 
+    // @formatter:off
+    /**
+     * Syntactic sugar to make fans of Behavior-Driven testing happy. Allows writing
+     * <pre>{@code
+     * CliAssured
+     *     .given()
+     *         .env("GREETING", "CLI Assured rocks!")
+     *     .when()
+     *         .command("sh", "-c", "echo $GREETING")
+     *     .then()
+     *         .stdout()
+     *             .hasLines("CLI Assured rocks!")
+     *             .hasLineCount(1)
+     *         .exitCode(0)
+     *     .execute()
+     *     .assertSuccess();
+     * }</pre>
+     *
+     * @return this {@link CommandSpec}
+     * @since  0.0.1
+     */
+    // @formatter:on
+    public CommandSpec when() {
+        return this;
+    }
+
     /**
      * @return a new {@link ExpectationsSpec}
      * @since  0.0.1
      */
-    public ExpectationsSpec expect() {
+    public ExpectationsSpec then() {
         return new ExpectationsSpec(this, stderrToStdout);
     }
 
