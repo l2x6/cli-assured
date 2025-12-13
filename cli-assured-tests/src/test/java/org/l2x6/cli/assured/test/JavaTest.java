@@ -34,17 +34,24 @@ public class JavaTest {
                 .awaitTermination()
                 .assertSuccess();
 
-        try {
-            command("hello", "Joe")
-                    .then()
-                    .stderr()
-                    .hasLines("Hello Joe")
-                    .start()
-                    .awaitTermination()
-                    .assertSuccess();
-            Assertions.fail("AssertionError expected");
-        } catch (AssertionError expected) {
-        }
+        Assertions
+                .assertThatThrownBy(
+                        command("hello", "Joe")
+                                .then()
+                                .stderr()
+                                .hasLines("Hello Joe")
+                                .start()
+                                .awaitTermination()::assertSuccess)
+                .isInstanceOf(AssertionError.class)
+                .hasMessage("Expected lines\n"
+                        + "\n"
+                        + "    Hello Joe\n"
+                        + "\n"
+                        + "to occur in stderr in any order, but lines\n"
+                        + "\n"
+                        + "    Hello Joe\n"
+                        + "\n"
+                        + "did not occur");
 
     }
 
@@ -80,15 +87,22 @@ public class JavaTest {
                 .awaitTermination()
                 .assertSuccess();
 
-        try {
-            run("helloErr", "Joe")
-                    .hasLines("Hello stderr Joe")
-                    .start()
-                    .awaitTermination()
-                    .assertSuccess();
-            Assertions.fail("AssertionError expected");
-        } catch (AssertionError expected) {
-        }
+        Assertions
+                .assertThatThrownBy(
+                        run("helloErr", "Joe")
+                                .hasLines("Hello stderr Joe")
+                                .start()
+                                .awaitTermination()::assertSuccess)
+                .isInstanceOf(AssertionError.class)
+                .hasMessage("Expected lines\n"
+                        + "\n"
+                        + "    Hello stderr Joe\n"
+                        + "\n"
+                        + "to occur in stdout in any order, but lines\n"
+                        + "\n"
+                        + "    Hello stderr Joe\n"
+                        + "\n"
+                        + "did not occur");
 
     }
 
@@ -112,17 +126,23 @@ public class JavaTest {
                 .awaitTermination()
                 .assertSuccess();
 
-        try {
-            command("hello", "Joe")
-                    .then()
-                    .stderr()
-                    .hasLinesContaining("lo J")
-                    .start()
-                    .awaitTermination()
-                    .assertSuccess();
-            Assertions.fail("AssertionError expected");
-        } catch (AssertionError expected) {
-        }
+        Assertions
+                .assertThatThrownBy(
+                        command("hello", "Joe")
+                                .then()
+                                .stderr()
+                                .hasLinesContaining("lo J")
+                                .start()
+                                .awaitTermination()::assertSuccess)
+                .isInstanceOf(AssertionError.class)
+                .hasMessage("Expected lines containing\n"
+                        + "\n"
+                        + "    lo J\n"
+                        + "\n"
+                        + "to occur in stderr, but the following substrings did not occur:\n"
+                        + "\n"
+                        + "    lo J\n"
+                        + "\n");
 
     }
 
@@ -135,17 +155,23 @@ public class JavaTest {
                 .awaitTermination()
                 .assertSuccess();
 
-        try {
-            command("hello", "Joe")
-                    .then()
-                    .stderr()
-                    .hasLinesMatching("lo J.e")
-                    .start()
-                    .awaitTermination()
-                    .assertSuccess();
-            Assertions.fail("AssertionError expected");
-        } catch (AssertionError expected) {
-        }
+        Assertions
+                .assertThatThrownBy(
+                        command("hello", "Joe")
+                                .then()
+                                .stderr()
+                                .hasLinesMatching("lo J.e")
+                                .start()
+                                .awaitTermination()::assertSuccess)
+                .isInstanceOf(AssertionError.class)
+                .hasMessage("Expected lines matching\n"
+                        + "\n"
+                        + "    lo J.e\n"
+                        + "\n"
+                        + "to occur in stderr, but the following patterns did not match:\n"
+                        + "\n"
+                        + "    lo J.e\n"
+                        + "\n");
     }
 
     @Test
@@ -164,24 +190,36 @@ public class JavaTest {
                 .awaitTermination()
                 .assertSuccess();
 
-        try {
-            run("hello", "Joe")
-                    .doesNotHaveLines("Hello Joe")
-                    .start()
-                    .awaitTermination()
-                    .assertSuccess();
-            Assertions.fail("AssertionError expected");
-        } catch (AssertionError expected) {
-        }
-        try {
-            runErr("helloErr", "Joe")
-                    .doesNotHaveLines("Hello Joe")
-                    .start()
-                    .awaitTermination()
-                    .assertSuccess();
-            Assertions.fail("AssertionError expected");
-        } catch (AssertionError expected) {
-        }
+        Assertions
+                .assertThatThrownBy(
+                        run("hello", "Joe")
+                                .doesNotHaveLines("Hello Joe")
+                                .start()
+                                .awaitTermination()::assertSuccess)
+                .isInstanceOf(AssertionError.class)
+                .hasMessage("Expected none of the lines\n"
+                        + "\n"
+                        + "    Hello Joe\n"
+                        + "\n"
+                        + "to occur in stdout, but the following lines occurred:\n"
+                        + "\n"
+                        + "    Hello Joe\n"
+                        + "\n");
+        Assertions
+                .assertThatThrownBy(
+                        runErr("helloErr", "Joe")
+                                .doesNotHaveLines("Hello stderr Joe")
+                                .start()
+                                .awaitTermination()::assertSuccess)
+                .isInstanceOf(AssertionError.class)
+                .hasMessage("Expected none of the lines\n"
+                        + "\n"
+                        + "    Hello stderr Joe\n"
+                        + "\n"
+                        + "to occur in stderr, but the following lines occurred:\n"
+                        + "\n"
+                        + "    Hello stderr Joe\n"
+                        + "\n");
 
     }
 
@@ -194,25 +232,37 @@ public class JavaTest {
                 .awaitTermination()
                 .assertSuccess();
 
-        try {
-            run("hello", "Joe")
-                    .doesNotHaveLinesContaining("Joe")
-                    .start()
-                    .awaitTermination()
-                    .assertSuccess();
-            Assertions.fail("AssertionError expected");
-        } catch (AssertionError expected) {
-        }
+        Assertions
+                .assertThatThrownBy(
+                        run("hello", "Joe")
+                                .doesNotHaveLinesContaining("Joe")
+                                .start()
+                                .awaitTermination()::assertSuccess)
+                .isInstanceOf(AssertionError.class)
+                .hasMessage("Expected no lines containing\n"
+                        + "\n"
+                        + "    Joe\n"
+                        + "\n"
+                        + "to occur in stdout, but some of the substrings occur in lines\n"
+                        + "\n"
+                        + "    Hello Joe\n"
+                        + "\n");
 
-        try {
-            runErr("helloErr", "Joe")
-                    .doesNotHaveLinesContaining("Joe")
-                    .start()
-                    .awaitTermination()
-                    .assertSuccess();
-            Assertions.fail("AssertionError expected");
-        } catch (AssertionError expected) {
-        }
+        Assertions
+                .assertThatThrownBy(
+                        runErr("helloErr", "Joe")
+                                .doesNotHaveLinesContaining("Joe")
+                                .start()
+                                .awaitTermination()::assertSuccess)
+                .isInstanceOf(AssertionError.class)
+                .hasMessage("Expected no lines containing\n"
+                        + "\n"
+                        + "    Joe\n"
+                        + "\n"
+                        + "to occur in stderr, but some of the substrings occur in lines\n"
+                        + "\n"
+                        + "    Hello stderr Joe\n"
+                        + "\n");
     }
 
     @Test
@@ -224,27 +274,37 @@ public class JavaTest {
                 .awaitTermination()
                 .assertSuccess();
 
-        try {
-            run("hello", "Joe")
-                    .doesNotHaveLinesMatching("lo Jo.*")
-                    .start()
-                    .awaitTermination()
-                    .assertSuccess();
-            ;
-            Assertions.fail("AssertionError expected");
-        } catch (AssertionError expected) {
-        }
+        Assertions
+                .assertThatThrownBy(
+                        run("hello", "Joe")
+                                .doesNotHaveLinesMatching("lo Jo.*")
+                                .start()
+                                .awaitTermination()::assertSuccess)
+                .isInstanceOf(AssertionError.class)
+                .hasMessage("Expected no lines matching\n"
+                        + "\n"
+                        + "    lo Jo.*\n"
+                        + "\n"
+                        + "to occur in stdout, but some of the patterns matched the lines\n"
+                        + "\n"
+                        + "    Hello Joe\n"
+                        + "\n");
 
-        try {
-            runErr("helloErr", "Joe")
-                    .doesNotHaveLinesMatching("lo Jo.*")
-                    .start()
-                    .awaitTermination()
-                    .assertSuccess();
-            ;
-            Assertions.fail("AssertionError expected");
-        } catch (AssertionError expected) {
-        }
+        Assertions
+                .assertThatThrownBy(
+                        runErr("helloErr", "Joe")
+                                .doesNotHaveLinesMatching("lo stderr Jo.*")
+                                .start()
+                                .awaitTermination()::assertSuccess)
+                .isInstanceOf(AssertionError.class)
+                .hasMessage("Expected no lines matching\n"
+                        + "\n"
+                        + "    lo stderr Jo.*\n"
+                        + "\n"
+                        + "to occur in stderr, but some of the patterns matched the lines\n"
+                        + "\n"
+                        + "    Hello stderr Joe\n"
+                        + "\n");
 
     }
 
