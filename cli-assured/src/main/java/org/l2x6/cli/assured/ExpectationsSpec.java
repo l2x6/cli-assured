@@ -8,7 +8,6 @@ import java.io.InputStream;
 import java.time.Duration;
 import java.util.Objects;
 import java.util.function.Function;
-import java.util.regex.Pattern;
 import org.l2x6.cli.assured.OutputConsumer.DevNull;
 import org.l2x6.cli.assured.OutputConsumer.OutputAsserts;
 import org.l2x6.cli.assured.StreamExpectationsSpec.ProcessOutput;
@@ -25,7 +24,6 @@ import org.slf4j.LoggerFactory;
  */
 public class ExpectationsSpec {
     static final Logger log = LoggerFactory.getLogger(ExpectationsSpec.class);
-    private static final Pattern MATCH_ANY_PATTERN = Pattern.compile(".*");
     private final CommandSpec command;
     private final boolean stderrToStdout;
     final Function<InputStream, OutputConsumer> stdout;

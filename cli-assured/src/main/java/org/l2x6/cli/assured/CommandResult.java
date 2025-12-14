@@ -14,7 +14,7 @@ import org.l2x6.cli.assured.asserts.Assert;
  * @author <a href="https://github.com/ppalaga">Peter Palaga</a>
  */
 public class CommandResult {
-    private final String cmdArrayString;
+    private final String command;
     private final int exitCode;
     private final Duration duration;
     private final long byteCountStdout;
@@ -23,7 +23,7 @@ public class CommandResult {
     private final Assert outputAssert;
 
     CommandResult(
-            String cmdArrayString,
+            String command,
             int exitCode,
             Duration runtimeMs,
             long byteCountStdout,
@@ -31,7 +31,7 @@ public class CommandResult {
             Throwable exception,
             Assert outputAssert) {
         super();
-        this.cmdArrayString = cmdArrayString;
+        this.command = command;
         this.exitCode = exitCode;
         this.duration = runtimeMs;
         this.byteCountStdout = byteCountStdout;
@@ -52,11 +52,12 @@ public class CommandResult {
      * @since  0.0.1
      */
     public CommandResult assertSuccess() {
+        Assert.FailureCollector collector = new Assert.FailureCollector(command);
         if (exception != null) {
-            throw new AssertionError("Exception was thrown when running " + cmdArrayString + ": "
-                    + exception.getMessage() + "\nCommand output\n" + outputAssert.toString(), exception);
+            collector.exception(exception);
         }
-        outputAssert.assertSatisfied();
+        outputAssert.evaluate(collector);
+        collector.assertSatisfied();
         return this;
     }
 
@@ -72,8 +73,7 @@ public class CommandResult {
     public CommandResult assertTimeout() {
         if (!(exception instanceof TimeoutAssertionError)) {
             throw new AssertionError(
-                    "Expected a timeout when running " + cmdArrayString + ": but got exit code " + exitCode
-                            + "\nCommand output\n" + outputAssert.toString(),
+                    "Expected a timeout when running " + command + ": but got exit code " + exitCode,
                     exception);
         }
         return this;
