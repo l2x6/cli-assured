@@ -153,20 +153,6 @@ public class CommandSpec {
     }
 
     /**
-     * Set a single environment variable for the command
-     *
-     * @param  name  name of the variable to add
-     * @param  value value of the variable to add
-     * @return       an adjusted copy of this {@link CommandSpec}
-     * @since        0.0.1
-     */
-    public CommandSpec envVar(String name, String value) {
-        Map<String, String> e = new LinkedHashMap<>(this.env);
-        e.put(name, value);
-        return new CommandSpec(executable, arguments, Collections.unmodifiableMap(e), cd, expectations, stderrToStdout);
-    }
-
-    /**
      * Set multiple environment variables for the command
      *
      * @param  env the variables to add
@@ -180,21 +166,26 @@ public class CommandSpec {
     }
 
     /**
-     * Set multiple environment variables for the command
+     * Set one or more environment variables for the command
      *
-     * @param  env the variables to add
-     * @return     an adjusted copy of this {@link CommandSpec}
-     * @since      0.0.1
+     * @param  name  name of the variable to add
+     * @param  value value of the variable to add
+     * @param  more  (optional) more variables to add; even elements are variable names, odd elements are values
+     * @return       an adjusted copy of this {@link CommandSpec}
+     * @since        0.0.1
      */
-    public CommandSpec env(String... env) {
-        int cnt = env.length;
+    public CommandSpec env(String name, String value, String... more) {
+        int cnt = more.length;
         if (cnt % 2 != 0) {
             throw new IllegalArgumentException("env(String[]) accepts only even number of arguments");
         }
-        Map<String, String> e = new LinkedHashMap<>(this.env);
+
+        final Map<String, String> e = new LinkedHashMap<>(this.env);
+        e.put(name, value);
+
         int i = 0;
         while (i < cnt) {
-            e.put(env[i++], env[i++]);
+            e.put(more[i++], more[i++]);
         }
         return new CommandSpec(executable, arguments, Collections.unmodifiableMap(e), cd, expectations, stderrToStdout);
     }
