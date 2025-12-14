@@ -15,6 +15,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Supplier;
+import org.l2x6.cli.assured.CliAssertUtils.ExcludeFromJacocoGeneratedReport;
 import org.l2x6.cli.assured.StreamExpectationsSpec.StreamExpectations;
 import org.l2x6.cli.assured.asserts.Assert;
 
@@ -78,6 +79,7 @@ abstract class OutputConsumer implements Assert {
         }
 
         @Override
+        @ExcludeFromJacocoGeneratedReport
         void run() {
             byte[] bytes = new byte[1024];
             try {
@@ -110,6 +112,7 @@ abstract class OutputConsumer implements Assert {
         }
 
         @Override
+        @ExcludeFromJacocoGeneratedReport
         void run() {
             if (streamExpectations.hasLineAsserts()) {
                 try (BufferedReader r = new BufferedReader(
@@ -160,6 +163,7 @@ abstract class OutputConsumer implements Assert {
         }
 
         @Override
+        @ExcludeFromJacocoGeneratedReport
         public int read() throws IOException {
             final int c = super.read();
             if (c >= 0) {
@@ -190,6 +194,7 @@ abstract class OutputConsumer implements Assert {
         }
 
         @Override
+        @ExcludeFromJacocoGeneratedReport
         public int read() throws IOException {
             final int c = super.read();
             if (c >= 0) {

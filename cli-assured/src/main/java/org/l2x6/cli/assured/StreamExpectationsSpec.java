@@ -28,6 +28,8 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import org.l2x6.cli.assured.CliAssertUtils.ExcludeFromJacocoGeneratedReport;
+import org.l2x6.cli.assured.asserts.Assert;
 import org.l2x6.cli.assured.asserts.ByteCountAssert;
 import org.l2x6.cli.assured.asserts.LineAssert;
 import org.slf4j.LoggerFactory;
@@ -170,7 +172,11 @@ public class StreamExpectationsSpec {
      *
      * @param  expected    the condition the number of actual lines must satisfy
      * @param  description the description of a failure typically something like
-     *                     {@code "Expected number of lines <condition> but found %d lines"}
+     *                     {@code "Expected number of lines <condition> in ${stream} but found ${actual} lines"} where
+     *                     {@code <condition>} is your human readable criteria, like {@code greater that 42},
+     *                     <code>${stream}</code> is a placeholder that CLI Assured will replace by {@code stdout}
+     *                     or {@code stderr} and <code>${actual}</code> is a placeholder that CLI Assured will replace
+     *                     by the actual number of lines found in the associated output stream
      * @return             an adjusted copy of this {@link StreamExpectationsSpec}
      * @since              0.0.1
      */
@@ -190,7 +196,8 @@ public class StreamExpectationsSpec {
      * @since                    0.0.1
      */
     public StreamExpectationsSpec hasByteCount(long expectedByteCount) {
-        return new StreamExpectationsSpec(expectations, stream, asserts, ByteCountAssert.hasByteCount(expectedByteCount),
+        return new StreamExpectationsSpec(expectations, stream, asserts,
+                ByteCountAssert.hasByteCount(expectedByteCount, stream),
                 charset, redirect);
     }
 
@@ -218,7 +225,8 @@ public class StreamExpectationsSpec {
      * @since                    0.0.1
      */
     public StreamExpectationsSpec isEmpty() {
-        return new StreamExpectationsSpec(expectations, stream, asserts, ByteCountAssert.hasByteCount(0), charset, redirect);
+        return new StreamExpectationsSpec(expectations, stream, asserts, ByteCountAssert.hasByteCount(0, stream), charset,
+                redirect);
     }
 
     /**
@@ -449,12 +457,17 @@ public class StreamExpectationsSpec {
      */
     public StreamExpectationsSpec redirect(Path file) {
         return new StreamExpectationsSpec(expectations, stream, asserts, byteCountAssert, charset, () -> {
-            try {
-                return Files.newOutputStream(file);
-            } catch (IOException e) {
-                throw new UncheckedIOException("Could not open " + file + " for writing", e);
-            }
+            return openFile(file);
         });
+    }
+
+    @ExcludeFromJacocoGeneratedReport
+    static OutputStream openFile(Path file) {
+        try {
+            return Files.newOutputStream(file);
+        } catch (IOException e) {
+            throw new UncheckedIOException("Could not open " + file + " for writing", e);
+        }
     }
 
     /**
@@ -599,7 +612,7 @@ public class StreamExpectationsSpec {
         return expectations.apply(build());
     }
 
-    static class StreamExpectations implements LineAssert {
+    static class StreamExpectations {
 
         private final List<LineAssert> lineAsserts;
         private final ByteCountAssert byteCountAssert;
@@ -629,20 +642,13 @@ public class StreamExpectationsSpec {
             this.stream = stream;
         }
 
-        @Override
-        public FailureCollector evaluate(FailureCollector failureCollector) {
-            lineAsserts.stream().forEach(a -> a.evaluate(failureCollector));
-            return failureCollector;
-        }
-
-        public void assertSatisfied(long byteCount, FailureCollector failureCollector) {
+        public void assertSatisfied(long byteCount, Assert.FailureCollector failureCollector) {
             lineAsserts.stream().forEach(a -> a.evaluate(failureCollector));
             if (byteCountAssert != null) {
                 byteCountAssert.byteCount(byteCount).evaluate(failureCollector);
             }
         }
 
-        @Override
         public StreamExpectations line(String line) {
             lineAsserts.stream().forEach(a -> a.line(line));
             return this;

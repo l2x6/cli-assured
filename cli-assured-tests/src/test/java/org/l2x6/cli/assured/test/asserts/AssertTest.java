@@ -4,9 +4,14 @@
  */
 package org.l2x6.cli.assured.test.asserts;
 
+import java.io.IOException;
+import java.util.Collections;
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.l2x6.cli.assured.asserts.Assert;
+import org.l2x6.cli.assured.asserts.Assert.FailureCollector;
+import org.l2x6.cli.assured.asserts.LineAssert;
+import org.l2x6.cli.assured.test.JavaTest;
 
 public class AssertTest {
 
@@ -39,6 +44,56 @@ public class AssertTest {
                         + "Failure 1/2: f1\n"
                         + "\n"
                         + "Failure 2/2: f2");
+    }
+
+    @Test
+    void lineAssert() throws IOException {
+
+        Assertions.assertThatThrownBy(
+                JavaTest.command("hello", "Joe")
+                        .then()
+                        .stdout()
+                        .linesSatisfy(new ThrowingLineAssert())
+                        .execute()::assertSuccess)
+                .isInstanceOf(AssertionError.class)
+                .message()
+                .matches("\\Q1 exceptions occurred while executing\n"
+                        + "\n"
+                        + "    \\E[^\n\r]+\\Q\n"
+                        + "\n"
+                        + "Exception 1/1: java.lang.RuntimeException: Hello 1\n"
+                        + "\tat Hello1.hello1(Hello1.java:1)\n"
+                        + "\tat Hello1.hola(Hello1.java:42)\n\\E");
+        Assertions.assertThatThrownBy(
+                JavaTest.command("hello", "Joe")
+                        .then()
+                        .stdout()
+                        .linesSatisfy(Collections.singletonList(new ThrowingLineAssert()))
+                        .execute()::assertSuccess)
+                .isInstanceOf(AssertionError.class)
+                .message()
+                .matches("\\Q1 exceptions occurred while executing\n"
+                        + "\n"
+                        + "    \\E[^\n\r]+\\Q\n"
+                        + "\n"
+                        + "Exception 1/1: java.lang.RuntimeException: Hello 1\n"
+                        + "\tat Hello1.hello1(Hello1.java:1)\n"
+                        + "\tat Hello1.hola(Hello1.java:42)\n\\E");
+    }
+
+    static class ThrowingLineAssert implements LineAssert {
+
+        @Override
+        public FailureCollector evaluate(FailureCollector failureCollector) {
+            failureCollector.exception(org.l2x6.cli.assured.test.asserts.AssertTest.exception(1));
+            return failureCollector;
+        }
+
+        @Override
+        public LineAssert line(String line) {
+            return this;
+        }
+
     }
 
     static Throwable exception(int index) {

@@ -311,6 +311,10 @@ public interface LineAssert extends Assert {
     static final class Internal {
         private static final Pattern PLACE_HOLDER_PATTERN = Pattern.compile("\\$\\{([^\\}]+)\\}");
 
+        @ExcludeFromJacocoGeneratedReport
+        private Internal() {
+        }
+
         static String formatMessage(String message, Function<String, String> eval) {
             Matcher m = PLACE_HOLDER_PATTERN.matcher(message);
             StringBuffer sb = new StringBuffer();
@@ -400,10 +404,12 @@ public interface LineAssert extends Assert {
                         stream);
             }
 
+            @ExcludeFromJacocoGeneratedReport
             static Map<String, Pattern> toMap(Collection<Pattern> expectedPatterns) {
                 Map<String, Pattern> pats = new LinkedHashMap<>();
-                expectedPatterns.stream()
-                        .forEach(p -> pats.put(p.pattern(), p));
+                for (Pattern p : expectedPatterns) {
+                    pats.put(p.pattern(), p);
+                }
                 return pats;
             }
 
@@ -423,6 +429,7 @@ public interface LineAssert extends Assert {
                 return failureCollector;
             }
 
+            @ExcludeFromJacocoGeneratedReport
             String eval(String key) {
                 switch (key) {
                 case "checks":
@@ -468,6 +475,7 @@ public interface LineAssert extends Assert {
                 return failureCollector;
             }
 
+            @ExcludeFromJacocoGeneratedReport
             String eval(String key) {
                 switch (key) {
                 case "actual":

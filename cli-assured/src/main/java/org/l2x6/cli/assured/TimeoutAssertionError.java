@@ -10,11 +10,17 @@ package org.l2x6.cli.assured;
  * @author <a href="https://github.com/ppalaga">Peter Palaga</a>
  * @since  0.0.1
  */
-public class TimeoutAssertionError extends AssertionError {
+class TimeoutAssertionError extends AssertionError {
 
     private static final long serialVersionUID = 2447109090380093692L;
 
     TimeoutAssertionError(String detailMessage) {
         super(detailMessage);
     }
+
+    @Override
+    public synchronized Throwable fillInStackTrace() {
+        return this;
+    }
+
 }

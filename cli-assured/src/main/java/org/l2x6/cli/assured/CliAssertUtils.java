@@ -4,6 +4,10 @@
  */
 package org.l2x6.cli.assured;
 
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -34,6 +38,11 @@ class CliAssertUtils {
         args.addAll(base);
         args.add(elem);
         return Collections.unmodifiableList(args);
+    }
+
+    @Retention(RetentionPolicy.RUNTIME)
+    @Target({ ElementType.CONSTRUCTOR, ElementType.METHOD })
+    public @interface ExcludeFromJacocoGeneratedReport {
     }
 
 }

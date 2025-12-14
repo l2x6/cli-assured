@@ -73,7 +73,8 @@ public class CommandResult {
     public CommandResult assertTimeout() {
         if (!(exception instanceof TimeoutAssertionError)) {
             throw new AssertionError(
-                    "Expected a timeout when running " + command + ": but got exit code " + exitCode,
+                    "Expected a timeout when running\n\n    " + command + "\n\nbut it terminated in " + duration
+                            + " with exit code " + exitCode,
                     exception);
         }
         return this;
@@ -91,7 +92,7 @@ public class CommandResult {
      * @return the duration of the command execution
      * @since  0.0.1
      */
-    public Duration durationMs() {
+    public Duration duration() {
         return duration;
     }
 

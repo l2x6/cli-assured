@@ -33,5 +33,17 @@ public class JavaSourceTest {
                 .awaitTermination()
                 .assertSuccess();
 
+        CliAssured.given()
+                .java()
+                .args(helloJava.toString())
+                .args("Joe")
+                .then()
+                .stdout()
+                .hasLines("Hello Joe")
+                .hasLineCount(1)
+                .start()
+                .awaitTermination()
+                .assertSuccess();
+
     }
 }
