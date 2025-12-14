@@ -15,6 +15,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
+import java.util.regex.Pattern;
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.l2x6.cli.assured.CliAssured;
@@ -43,7 +44,7 @@ public class JavaTest {
                                 .start()
                                 .awaitTermination()::assertSuccess)
                 .isInstanceOf(AssertionError.class)
-                .hasMessage("Expected lines\n"
+                .message().endsWith("Failure 1/1: Expected lines\n"
                         + "\n"
                         + "    Hello Joe\n"
                         + "\n"
@@ -71,8 +72,7 @@ public class JavaTest {
                 .stderrToStdout()
                 .then()::stderr)
                 .isInstanceOf(IllegalStateException.class)
-                .hasMessage(
-                        "You cannot set any assertions on stderr while you are redirecting stderr to stdout");
+                .hasMessage("You cannot set any assertions on stderr while you are redirecting stderr to stdout");
 
     }
 
@@ -90,11 +90,22 @@ public class JavaTest {
         Assertions
                 .assertThatThrownBy(
                         run("helloErr", "Joe")
+                                .start()
+                                .awaitTermination()::assertSuccess)
+                .isInstanceOf(AssertionError.class)
+                .message().endsWith("Failure 1/1: Expected no content to occur in stderr, but the following occurred:\n"
+                        + "\n"
+                        + "    Hello stderr Joe\n"
+                        + "\n");
+
+        Assertions
+                .assertThatThrownBy(
+                        run("helloErr", "Joe")
                                 .hasLines("Hello stderr Joe")
                                 .start()
                                 .awaitTermination()::assertSuccess)
                 .isInstanceOf(AssertionError.class)
-                .hasMessage("Expected lines\n"
+                .message().endsWith("Failure 1/2: Expected lines\n"
                         + "\n"
                         + "    Hello stderr Joe\n"
                         + "\n"
@@ -102,7 +113,11 @@ public class JavaTest {
                         + "\n"
                         + "    Hello stderr Joe\n"
                         + "\n"
-                        + "did not occur");
+                        + "did not occur\n\n"
+                        + "Failure 2/2: Expected no content to occur in stderr, but the following occurred:\n"
+                        + "\n"
+                        + "    Hello stderr Joe\n"
+                        + "\n");
 
     }
 
@@ -135,7 +150,7 @@ public class JavaTest {
                                 .start()
                                 .awaitTermination()::assertSuccess)
                 .isInstanceOf(AssertionError.class)
-                .hasMessage("Expected lines containing\n"
+                .message().endsWith("Failure 1/1: Expected lines containing\n"
                         + "\n"
                         + "    lo J\n"
                         + "\n"
@@ -164,7 +179,7 @@ public class JavaTest {
                                 .start()
                                 .awaitTermination()::assertSuccess)
                 .isInstanceOf(AssertionError.class)
-                .hasMessage("Expected lines matching\n"
+                .message().endsWith("Failure 1/1: Expected lines matching\n"
                         + "\n"
                         + "    lo J.e\n"
                         + "\n"
@@ -197,7 +212,7 @@ public class JavaTest {
                                 .start()
                                 .awaitTermination()::assertSuccess)
                 .isInstanceOf(AssertionError.class)
-                .hasMessage("Expected none of the lines\n"
+                .message().endsWith("Failure 1/1: Expected none of the lines\n"
                         + "\n"
                         + "    Hello Joe\n"
                         + "\n"
@@ -212,7 +227,7 @@ public class JavaTest {
                                 .start()
                                 .awaitTermination()::assertSuccess)
                 .isInstanceOf(AssertionError.class)
-                .hasMessage("Expected none of the lines\n"
+                .message().endsWith("Failure 1/1: Expected none of the lines\n"
                         + "\n"
                         + "    Hello stderr Joe\n"
                         + "\n"
@@ -239,7 +254,7 @@ public class JavaTest {
                                 .start()
                                 .awaitTermination()::assertSuccess)
                 .isInstanceOf(AssertionError.class)
-                .hasMessage("Expected no lines containing\n"
+                .message().endsWith("Failure 1/1: Expected no lines containing\n"
                         + "\n"
                         + "    Joe\n"
                         + "\n"
@@ -255,7 +270,7 @@ public class JavaTest {
                                 .start()
                                 .awaitTermination()::assertSuccess)
                 .isInstanceOf(AssertionError.class)
-                .hasMessage("Expected no lines containing\n"
+                .message().endsWith("Failure 1/1: Expected no lines containing\n"
                         + "\n"
                         + "    Joe\n"
                         + "\n"
@@ -281,7 +296,7 @@ public class JavaTest {
                                 .start()
                                 .awaitTermination()::assertSuccess)
                 .isInstanceOf(AssertionError.class)
-                .hasMessage("Expected no lines matching\n"
+                .message().endsWith("Failure 1/1: Expected no lines matching\n"
                         + "\n"
                         + "    lo Jo.*\n"
                         + "\n"
@@ -297,7 +312,7 @@ public class JavaTest {
                                 .start()
                                 .awaitTermination()::assertSuccess)
                 .isInstanceOf(AssertionError.class)
-                .hasMessage("Expected no lines matching\n"
+                .message().endsWith("Failure 1/1: Expected no lines matching\n"
                         + "\n"
                         + "    lo stderr Jo.*\n"
                         + "\n"
@@ -388,7 +403,7 @@ public class JavaTest {
                     .awaitTermination();
 
             Assertions.assertThatThrownBy(result::assertSuccess).isInstanceOf(AssertionError.class)
-                    .hasMessage("Expected exit code 0 but was 1");
+                    .message().endsWith("Failure 1/1: Expected exit code 0 but was 1");
 
             Assertions.assertThat(result.exitCode()).isEqualTo(1);
         }
@@ -416,7 +431,8 @@ public class JavaTest {
                     .awaitTermination();
 
             Assertions.assertThatThrownBy(result::assertSuccess).isInstanceOf(AssertionError.class)
-                    .hasMessageMatching("Expected 20 bytes but found 1[01] bytes");
+                    .hasMessageMatching(
+                            Pattern.compile(".*Failure 1/1: Expected 20 bytes but found 1[01] bytes", Pattern.DOTALL));
 
             Assertions.assertThat(result.byteCountStdout())
                     .isBetween(10L, 11L); // it is 10 on Linux and 11 on Windows
@@ -430,7 +446,8 @@ public class JavaTest {
                     .awaitTermination();
 
             Assertions.assertThatThrownBy(result::assertSuccess).isInstanceOf(AssertionError.class)
-                    .hasMessageMatching("Expected bytes > 20 but found 1[1-2] bytes");
+                    .hasMessageMatching(
+                            Pattern.compile(".*Failure 1/1: Expected bytes > 20 but found 1[1-2] bytes", Pattern.DOTALL));
 
             Assertions.assertThat(result.byteCountStdout()).isBetween(11L, 12L);
         }

@@ -50,8 +50,9 @@ public class ExitCodeAssert implements Assert {
     }
 
     /**
-     * Record the actual exit code and throw any {@link AssertionError}s from {@link #assertSatisfied()} rather than
-     * from this method.
+     * Record the actual exit code.
+     * Any assertion failures should be reported via {@link #evaluate()} rather than by throwing an exception from this
+     * method.
      *
      * @param actualExitCode the actual exit code of a process
      * @since                0.0.1
@@ -62,17 +63,16 @@ public class ExitCodeAssert implements Assert {
     }
 
     @Override
-    public void assertSatisfied() {
+    public FailureCollector evaluate(FailureCollector failureCollector) {
         if (sortedCodes.length == 1) {
             if (sortedCodes[0] != actualExitCode) {
-                throw new AssertionError("Expected exit code " + sortedCodes[0] + " but was " + actualExitCode);
+                failureCollector.failure("Expected exit code " + sortedCodes[0] + " but was " + actualExitCode);
             }
         } else if (Arrays.binarySearch(sortedCodes, actualExitCode) < 0) {
             String codes = IntStream.of(sortedCodes).mapToObj(String::valueOf).collect(Collectors.joining(", "));
-            throw new AssertionError("Expected any of exit codes "
-                    + codes + " but was "
-                    + actualExitCode);
+            failureCollector.failure("Expected any of exit codes " + codes + " but was " + actualExitCode);
         }
+        return failureCollector;
     }
 
 }

@@ -630,14 +630,15 @@ public class StreamExpectationsSpec {
         }
 
         @Override
-        public void assertSatisfied() {
-            lineAsserts.stream().forEach(LineAssert::assertSatisfied);
+        public FailureCollector evaluate(FailureCollector failureCollector) {
+            lineAsserts.stream().forEach(a -> a.evaluate(failureCollector));
+            return failureCollector;
         }
 
-        public void assertSatisfied(long byteCount) {
-            lineAsserts.stream().forEach(LineAssert::assertSatisfied);
+        public void assertSatisfied(long byteCount, FailureCollector failureCollector) {
+            lineAsserts.stream().forEach(a -> a.evaluate(failureCollector));
             if (byteCountAssert != null) {
-                byteCountAssert.byteCount(byteCount).assertSatisfied();
+                byteCountAssert.byteCount(byteCount).evaluate(failureCollector);
             }
         }
 

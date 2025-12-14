@@ -24,7 +24,6 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import org.l2x6.cli.assured.StreamExpectationsSpec;
-import org.l2x6.cli.assured.StreamExpectationsSpec.ProcessOutput;
 
 /**
  * An assertion on a sequence of lines of a command output.
@@ -35,9 +34,9 @@ import org.l2x6.cli.assured.StreamExpectationsSpec.ProcessOutput;
 public interface LineAssert extends Assert {
 
     /**
-     * Check the actual output {@code line} and throw any {@link AssertionError}s from {@link #assertSatisfied()} rather
-     * than
-     * from this method.
+     * Check the actual output {@code line}.
+     * Any assertion failures should be reported via {@link #evaluate()} rather than by throwing an exception from this
+     * method.
      *
      * @param line the line text without any trailing newline character to check
      * @since      0.0.1
@@ -334,7 +333,8 @@ public interface LineAssert extends Assert {
             }
 
             @Override
-            public void assertSatisfied() {
+            public FailureCollector evaluate(FailureCollector failureCollector) {
+                return failureCollector;
             }
 
             @Override
@@ -414,12 +414,13 @@ public interface LineAssert extends Assert {
             }
 
             @Override
-            public void assertSatisfied() {
+            public FailureCollector evaluate(FailureCollector failureCollector) {
                 synchronized (hits) {
                     if (!hits.isEmpty()) {
-                        throw new AssertionError(formatMessage(description, this::eval));
+                        failureCollector.failure(formatMessage(description, this::eval));
                     }
                 }
+                return failureCollector;
             }
 
             String eval(String key) {
@@ -460,10 +461,11 @@ public interface LineAssert extends Assert {
             }
 
             @Override
-            public void assertSatisfied() {
+            public FailureCollector evaluate(FailureCollector failureCollector) {
                 if (!expected.test(actualCount.get())) {
-                    throw new AssertionError(formatMessage(description, this::eval));
+                    failureCollector.failure(formatMessage(description, this::eval));
                 }
+                return failureCollector;
             }
 
             String eval(String key) {

@@ -40,15 +40,11 @@ abstract class OutputConsumer implements Assert {
     }
 
     @Override
-    public void assertSatisfied() {
+    public FailureCollector evaluate(FailureCollector failureCollector) {
         synchronized (exceptions) {
-            if (!exceptions.isEmpty()) {
-                final AssertionError ae = new AssertionError(
-                        "There were exceptions caught while processing " + stream + ":");
-                exceptions.forEach(ae::addSuppressed);
-                throw ae;
-            }
+            exceptions.forEach(failureCollector::exception);
         }
+        return failureCollector;
     }
 
     void start() {
@@ -90,7 +86,9 @@ abstract class OutputConsumer implements Assert {
                     byteCount.addAndGet(cnt);
                 }
             } catch (Throwable e) {
-                exceptions.add(e);
+                synchronized (exceptions) {
+                    exceptions.add(new RuntimeException("Exception caught while consuming " + stream, e));
+                }
             }
         }
 
@@ -121,7 +119,9 @@ abstract class OutputConsumer implements Assert {
                         streamExpectations.line(line);
                     }
                 } catch (Exception e) {
-                    exceptions.add(e);
+                    synchronized (exceptions) {
+                        exceptions.add(new RuntimeException("Exception caught while consuming " + stream, e));
+                    }
                 }
             } else {
                 try (InputStream wrappedIn = redirect(in, streamExpectations.redirect())) {
@@ -129,7 +129,9 @@ abstract class OutputConsumer implements Assert {
                     while (wrappedIn.read(buff) >= 0) {
                     }
                 } catch (Exception e) {
-                    exceptions.add(e);
+                    synchronized (exceptions) {
+                        exceptions.add(new RuntimeException("Exception caught while consuming " + stream, e));
+                    }
                 }
             }
         }
@@ -141,9 +143,10 @@ abstract class OutputConsumer implements Assert {
             return new RedirectInputStream(in, redirect.get(), byteCount);
         }
 
-        public void assertSatisfied() {
-            super.assertSatisfied();
-            streamExpectations.assertSatisfied(byteCount());
+        public FailureCollector evaluate(FailureCollector failureCollector) {
+            super.evaluate(failureCollector);
+            streamExpectations.assertSatisfied(byteCount(), failureCollector);
+            return failureCollector;
         }
 
     }

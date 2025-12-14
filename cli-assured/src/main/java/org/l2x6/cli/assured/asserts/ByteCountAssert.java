@@ -23,15 +23,17 @@ public class ByteCountAssert implements Assert {
     }
 
     @Override
-    public void assertSatisfied() {
+    public FailureCollector evaluate(FailureCollector failureCollector) {
         if (!expected.test(actualCount)) {
-            throw new AssertionError(String.format(description, actualCount));
+            failureCollector.failure(String.format(description, actualCount));
         }
+        return failureCollector;
     }
 
     /**
-     * Record the actual number of bytes and throw any {@link AssertionError}s from {@link #assertSatisfied()} rather than
-     * from this method.
+     * Record the actual number of bytes.
+     * Any assertion failures should be reported via {@link #evaluate()} rather than by throwing an exception from this
+     * method.
      *
      * @param  byteCount the number of bytes to record
      * @return           this {@link ByteCountAssert}
