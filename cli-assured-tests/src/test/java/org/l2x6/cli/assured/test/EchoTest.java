@@ -32,11 +32,16 @@ public class EchoTest {
                 .given()
                     .env("MESSAGE", "CLI Assured rocks!")
                 .when()
-                    .command("sh", "-c", "echo $MESSAGE")
+                    .command("sh", "-c",
+                                "echo $MESSAGE;"
+                              + "echo Really! 1>&2")
                 .then()
                     .stdout()
-                    .hasLines("CLI Assured rocks!")
-                    .hasLineCount(1)
+                        .hasLines("CLI Assured rocks!")
+                        .hasLineCount(1)
+                    .stderr()
+                        .hasLines("Really!")
+                        .hasLineCount(1)
                     .exitCode(0)
                 .execute()
                 .assertSuccess();
