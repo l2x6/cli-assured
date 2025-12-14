@@ -22,6 +22,7 @@ import java.util.Objects;
 import java.util.function.Function;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+import org.l2x6.cli.assured.CliAssertUtils.ExcludeFromJacocoGeneratedReport;
 import org.l2x6.cli.assured.asserts.Assert;
 import org.slf4j.LoggerFactory;
 
@@ -104,6 +105,7 @@ public class CommandSpec {
         return new CommandSpec(exec, arguments, env, cd, expectations, stderrToStdout);
     }
 
+    @ExcludeFromJacocoGeneratedReport
     static String javaExecutable() {
         final Path javaHome = Paths.get(System.getProperty("java.home"));
         Path java = javaHome.resolve("bin/java");
@@ -264,6 +266,7 @@ public class CommandSpec {
      * @since  0.0.1
      * @see    #execute()
      */
+    @ExcludeFromJacocoGeneratedReport
     public CommandProcess start() {
         String[] cmdArray = asCmdArray(executable, arguments);
         String cmdArrayString = Arrays.stream(cmdArray).map(CommandSpec::quote).collect(Collectors.joining(" "));
@@ -297,7 +300,7 @@ public class CommandSpec {
             return new CommandProcess(
                     cmdArrayString,
                     process,
-                    joinAsserts(out, err),
+                    Assert.all(out, err, expectations.exitCodeAssert),
                     expectations.exitCodeAssert,
                     out,
                     err);
@@ -351,7 +354,7 @@ public class CommandSpec {
      */
     String[] asCmdArray(String executable, List<String> args) {
         if (executable == null) {
-            throw new IllegalStateException("executable must be specified before starting the command process."
+            throw new IllegalStateException("The executable must be specified before starting the command process."
                     + " You may want to call CommandSpec.executable(String) or CommandSpec.command(String, String...)");
         }
         String[] result = new String[args.size() + 1];
@@ -361,12 +364,6 @@ public class CommandSpec {
             result[i++] = arg;
         }
         return result;
-    }
-
-    Assert joinAsserts(OutputConsumer out,
-            OutputConsumer err) {
-        return err == null ? Assert.all(out, expectations.exitCodeAssert)
-                : Assert.all(out, err, expectations.exitCodeAssert);
     }
 
     static String envString(Map<String, String> env) {

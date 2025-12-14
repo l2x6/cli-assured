@@ -11,14 +11,18 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
 import org.assertj.core.api.Assertions;
+import org.awaitility.Awaitility;
 import org.junit.jupiter.api.Test;
 import org.l2x6.cli.assured.CliAssured;
+import org.l2x6.cli.assured.CommandProcess;
 import org.l2x6.cli.assured.CommandResult;
 import org.l2x6.cli.assured.CommandSpec;
 import org.l2x6.cli.assured.StreamExpectationsSpec;
@@ -31,6 +35,7 @@ public class JavaTest {
 
         run("hello", "Joe")
                 .hasLines("Hello Joe")
+                .hasLines(Collections.singleton("Hello Joe"))
                 .start()
                 .awaitTermination()
                 .assertSuccess();
@@ -79,13 +84,16 @@ public class JavaTest {
     @Test
     void stderr() {
 
-        command("helloErr", "Joe")
+        CommandResult result = command("helloErr", "Joe")
                 .then()
                 .stderr()
                 .hasLines("Hello stderr Joe")
                 .start()
                 .awaitTermination()
                 .assertSuccess();
+
+        Assertions.assertThat(result.byteCountStderr()).isBetween(17L, 18L);
+        Assertions.assertThat(result.duration()).isGreaterThan(Duration.ofMillis(0));
 
         Assertions
                 .assertThatThrownBy(
@@ -122,20 +130,86 @@ public class JavaTest {
     }
 
     @Test
+    void killForcibly() {
+        assertKill(true, 143);
+    }
+
+    @Test
+    void killGently() {
+        assertKill(false, 137);
+    }
+
+    static void assertKill(boolean forcibly, int exitCodeLinux) {
+        List<String> lines = Collections.synchronizedList(new ArrayList<>());
+        CommandProcess proc = run("sleep", "500")
+                .log(lines::add)
+                .exitCode(1, exitCodeLinux) // Windows, Linux
+                .start();
+
+        Awaitility.waitAtMost(10, TimeUnit.SECONDS)
+                .until(() -> lines.size() == 1 && lines.contains("About to sleep for 500 ms"));
+        if (forcibly) {
+            proc.kill(forcibly);
+            proc.kill(forcibly);
+        } else {
+            proc.close();
+            proc.close();
+        }
+
+        proc.awaitTermination().assertSuccess();
+    }
+
+    @Test
     void timeout() {
 
-        run("sleep", "500")
+        CommandResult result = run("sleep", "500")
                 .hasLines("About to sleep for 500 ms")
                 .hasLineCount(1)
                 .start()
                 .awaitTermination(200)
                 .assertTimeout();
+
+        Assertions.assertThat(result.duration()).isGreaterThan(Duration.ofMillis(200));
+
+        Assertions
+                .assertThatThrownBy(
+                        command("hello", "Joe")
+                                .then()
+                                .stderr()
+                                .hasLines("Hello Joe")
+                                .start()
+                                .awaitTermination()::assertTimeout)
+                .isInstanceOf(AssertionError.class)
+                .message().matches(Pattern.compile("Expected a timeout when running\n"
+                        + "\n"
+                        + "    [^\n\r]+\n"
+                        + "\n"
+                        + "but it terminated in [\\S]+ with exit code 0", Pattern.DOTALL));
+
+        Assertions
+                .assertThatThrownBy(
+                        run("sleep", "500")
+                                .hasLines("About to sleep for 500 ms")
+                                .hasLineCount(1)
+                                .exitCode(-1)
+                                .execute(200)::assertSuccess)
+                .isInstanceOf(AssertionError.class)
+                .message().matches(Pattern.compile("1 exceptions occurred while executing\n"
+                        + "\n"
+                        + "    [^\n\r]+\n"
+                        + "\n"
+                        + "Exception 1/1: org.l2x6.cli.assured.TimeoutAssertionError: Command has not terminated within 200 ms\n",
+                        Pattern.DOTALL));
+
     }
 
     @Test
-    void hasLineContaining() {
+    void hasLinesContaining() {
         run("hello", "Joe")
                 .hasLinesContaining("lo J")
+                .hasLinesContaining(Collections.singleton("Hello"))
+                .hasLinesContainingCaseInsensitive("JOE")
+                .hasLinesContainingCaseInsensitive(Collections.singleton("hel"))
                 .hasLineCount(1)
                 .start()
                 .awaitTermination()
@@ -147,24 +221,35 @@ public class JavaTest {
                                 .then()
                                 .stderr()
                                 .hasLinesContaining("lo J")
+                                .hasLinesContainingCaseInsensitive("JOE")
                                 .start()
                                 .awaitTermination()::assertSuccess)
                 .isInstanceOf(AssertionError.class)
-                .message().endsWith("Failure 1/1: Expected lines containing\n"
+                .message().endsWith("Failure 1/2: Expected lines containing\n"
                         + "\n"
                         + "    lo J\n"
                         + "\n"
                         + "to occur in stderr, but the following substrings did not occur:\n"
                         + "\n"
                         + "    lo J\n"
+                        + "\n"
+                        + "Failure 2/2: Expected lines containing using case insensitive comparison\n"
+                        + "\n"
+                        + "    joe\n"
+                        + "\n"
+                        + "to occur in stderr, but the following substrings did not occur:\n"
+                        + "\n"
+                        + "    joe\n"
                         + "\n");
 
     }
 
     @Test
-    void hasLineMatching() {
+    void hasLinesMatching() {
         run("hello", "Joe")
                 .hasLinesMatching("lo J.e")
+                .hasLinesMatching(Pattern.compile("joe", Pattern.CASE_INSENSITIVE))
+                .hasLinesMatching(Collections.singletonList("Hel+o"))
                 .hasLineCount(1)
                 .start()
                 .awaitTermination()
@@ -190,9 +275,10 @@ public class JavaTest {
     }
 
     @Test
-    void doesNotHaveLine() {
+    void doesNotHaveLines() {
         run("hello", "Joe")
                 .doesNotHaveLines("Hello John")
+                .doesNotHaveLines(Collections.singletonList("Foo"))
                 .hasLineCount(1)
                 .start()
                 .awaitTermination()
@@ -239,9 +325,12 @@ public class JavaTest {
     }
 
     @Test
-    void doesNotHaveLineContaining() {
+    void doesNotHaveLinesContaining() {
         run("hello", "Joe")
                 .doesNotHaveLinesContaining("John")
+                .doesNotHaveLinesContaining(Collections.singletonList("foo"))
+                .doesNotHaveLinesContainingCaseInsensitive("DOLLY")
+                .doesNotHaveLinesContainingCaseInsensitive(Collections.singletonList("bar"))
                 .hasLineCount(1)
                 .start()
                 .awaitTermination()
@@ -281,9 +370,11 @@ public class JavaTest {
     }
 
     @Test
-    void doesNotHaveLineMatching() {
+    void doesNotHaveLinesMatching() {
         run("hello", "Joe")
                 .doesNotHaveLinesMatching("Hello M.*")
+                .doesNotHaveLinesMatching(Pattern.compile("joe"))
+                .doesNotHaveLinesMatching(Collections.singleton("FOO"))
                 .hasLineCount(1)
                 .start()
                 .awaitTermination()
@@ -321,6 +412,41 @@ public class JavaTest {
                         + "    Hello stderr Joe\n"
                         + "\n");
 
+    }
+
+    @Test
+    void hasLineCount() {
+        run("hello", "Joe")
+                .hasLineCount(cnt -> cnt > 0 && cnt < 2,
+                        "Expected number of lines > 0 && < 2 in ${stream} but found ${actual} lines")
+                .start()
+                .awaitTermination()
+                .assertSuccess();
+
+        Assertions
+                .assertThatThrownBy(
+                        command("hello", "Joe")
+                                .then()
+                                .stderr()
+                                .hasLineCount(cnt -> cnt > 0 && cnt < 2,
+                                        "Expected number of lines > 0 && < 2 in ${stream} but found ${actual} lines")
+                                .start()
+                                .awaitTermination()::assertSuccess)
+                .isInstanceOf(AssertionError.class)
+                .message().endsWith("Failure 1/1: Expected number of lines > 0 && < 2 in stderr but found 0 lines");
+    }
+
+    @Test
+    void isEmpty() {
+
+        Assertions
+                .assertThatThrownBy(
+                        run("hello", "Joe")
+                                .isEmpty()
+                                .start()
+                                .awaitTermination()::assertSuccess)
+                .isInstanceOf(AssertionError.class)
+                .message().contains("Failure 1/1: Expected 0 bytes in stdout but found");
     }
 
     @Test
@@ -432,7 +558,8 @@ public class JavaTest {
 
             Assertions.assertThatThrownBy(result::assertSuccess).isInstanceOf(AssertionError.class)
                     .hasMessageMatching(
-                            Pattern.compile(".*Failure 1/1: Expected 20 bytes but found 1[01] bytes", Pattern.DOTALL));
+                            Pattern.compile(".*Failure 1/1: Expected 20 bytes in stdout but found 1[01] bytes",
+                                    Pattern.DOTALL));
 
             Assertions.assertThat(result.byteCountStdout())
                     .isBetween(10L, 11L); // it is 10 on Linux and 11 on Windows
@@ -476,6 +603,44 @@ public class JavaTest {
                 .execute()
                 .assertSuccess();
         Assertions.assertThat(cd.resolve("hello.txt")).isRegularFile().hasContent("Hello minimalExecute");
+
+        run("sleep", "500")
+                .hasLines("About to sleep for 500 ms")
+                .hasLineCount(1)
+                .execute(200)
+                .assertTimeout();
+
+        run("sleep", "500")
+                .hasLines("About to sleep for 500 ms")
+                .hasLineCount(1)
+                .execute(Duration.ofMillis(200))
+                .assertTimeout();
+
+    }
+
+    @Test
+    void awaitTermination() {
+
+        run("hello", "Joe")
+                .hasLines("Hello Joe")
+                .start()
+                .awaitTermination(Duration.ofMillis(10000))
+                .assertSuccess();
+
+        run("hello", "Joe")
+                .hasLines("Hello Joe")
+                .start()
+                .awaitTermination(10000)
+                .assertSuccess();
+
+    }
+
+    @Test
+    void start() {
+        Assertions.assertThatThrownBy(CliAssured.given()::start)
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessage(
+                        "The executable must be specified before starting the command process. You may want to call CommandSpec.executable(String) or CommandSpec.command(String, String...)");
     }
 
     @Test
@@ -528,7 +693,7 @@ public class JavaTest {
                 .stderr();
     }
 
-    static CommandSpec command(String... args) {
+    public static CommandSpec command(String... args) {
         final String testAppArtifactId = "cli-assured-test-app";
         final String version = System.getProperty("project.version");
         Path testAppJar = Paths.get("../" + testAppArtifactId + "/target/" + testAppArtifactId + "-" + version + ".jar")

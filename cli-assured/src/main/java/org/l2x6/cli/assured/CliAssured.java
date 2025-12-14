@@ -7,6 +7,7 @@ package org.l2x6.cli.assured;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import org.l2x6.cli.assured.CliAssertUtils.ExcludeFromJacocoGeneratedReport;
 
 /**
  * Entry methods for building command assertions.
@@ -15,6 +16,11 @@ import java.util.Collections;
  * @author <a href="https://github.com/ppalaga">Peter Palaga</a>
  */
 public class CliAssured {
+
+    @ExcludeFromJacocoGeneratedReport
+    private CliAssured() {
+    }
+
     /**
      * @return a plain {@link CommandSpec}
      * @since  0.0.1

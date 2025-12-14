@@ -6,6 +6,10 @@ package org.l2x6.cli.assured.asserts;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -21,6 +25,10 @@ import java.util.StringJoiner;
  * @author <a href="https://github.com/ppalaga">Peter Palaga</a>
  */
 public interface Assert {
+    @Retention(RetentionPolicy.RUNTIME)
+    @Target({ ElementType.CONSTRUCTOR, ElementType.METHOD })
+    public @interface ExcludeFromJacocoGeneratedReport {
+    }
 
     /**
      * Evaluate this {@link Assert} and pass any failures to the given {@link FailureCollector}.
@@ -106,6 +114,7 @@ public interface Assert {
             }
         }
 
+        @ExcludeFromJacocoGeneratedReport
         static void assertTwoTrailingNewLines(StringBuilder message) {
             final int len = message.length();
             if (len >= 2) {

@@ -6,6 +6,7 @@ package org.l2x6.cli.assured;
 
 import java.io.Closeable;
 import java.time.Duration;
+import org.l2x6.cli.assured.CliAssertUtils.ExcludeFromJacocoGeneratedReport;
 import org.l2x6.cli.assured.asserts.Assert;
 import org.l2x6.cli.assured.asserts.ExitCodeAssert;
 
@@ -68,6 +69,7 @@ public class CommandProcess implements Closeable {
      *                 {@link Process#destroy()}
      * @since          0.0.1
      */
+    @ExcludeFromJacocoGeneratedReport
     public void kill(boolean forcibly) {
         if (!closed) {
             this.closed = true;
@@ -93,6 +95,7 @@ public class CommandProcess implements Closeable {
      * @return a {@link CommandResult}
      * @since  0.0.1
      */
+    @ExcludeFromJacocoGeneratedReport
     public CommandResult awaitTermination() {
         final long startMillisTime = System.currentTimeMillis();
         try {
@@ -124,6 +127,7 @@ public class CommandProcess implements Closeable {
      * @return           a {@link CommandResult}
      * @since            0.0.1
      */
+    @ExcludeFromJacocoGeneratedReport
     public CommandResult awaitTermination(long timeoutMs) {
         final long startMillisTime = System.currentTimeMillis();
 
@@ -148,11 +152,11 @@ public class CommandProcess implements Closeable {
                 Duration.ofMillis(System.currentTimeMillis() - startMillisTime),
                 out.byteCount(),
                 err.byteCount(),
-                new TimeoutAssertionError(
-                        String.format("Command has not terminated within %d ms: %s", timeoutMs, cmdArrayString)),
+                new TimeoutAssertionError("Command has not terminated within " + timeoutMs + " ms"),
                 asserts);
     }
 
+    @ExcludeFromJacocoGeneratedReport
     CommandResult terminated(long startMillisTime) {
         int exitCode = process.exitValue();
         try {

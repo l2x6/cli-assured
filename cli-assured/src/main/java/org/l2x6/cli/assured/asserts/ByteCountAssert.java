@@ -5,6 +5,7 @@
 package org.l2x6.cli.assured.asserts;
 
 import java.util.function.Predicate;
+import org.l2x6.cli.assured.StreamExpectationsSpec.ProcessOutput;
 
 /**
  * An assertion on a number of bytes produced by a command.
@@ -48,13 +49,19 @@ public class ByteCountAssert implements Assert {
      * Assert that upon termination of the associated process, the underlying output stream has produced the given number of
      * bytes.
      *
-     * @param  expectedByteCount
+     * @param  expectedByteCount the number of bytes expected
+     * @param  stream            the output stream to watch
      * @return                   a new {@link ByteCountAssert}
      * @since                    0.0.1
      */
-    public static ByteCountAssert hasByteCount(long expectedByteCount) {
-        return new ByteCountAssert(actual -> actual.longValue() == expectedByteCount,
-                "Expected " + expectedByteCount + " bytes but found %d bytes");
+    public static ByteCountAssert hasByteCount(long expectedByteCount, ProcessOutput stream) {
+        return new ByteCountAssert(actual -> isEqual(actual.longValue(), expectedByteCount),
+                "Expected " + expectedByteCount + " bytes in " + stream + " but found %d bytes");
+    }
+
+    @ExcludeFromJacocoGeneratedReport
+    static boolean isEqual(long actual, long expectedByteCount) {
+        return actual == expectedByteCount;
     }
 
     /**
