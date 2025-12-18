@@ -40,7 +40,7 @@ public interface Assert {
     static Assert all(Assert... asserts) {
         final List<Assert> copy = Collections.unmodifiableList(new ArrayList<>(Arrays.asList(asserts)));
         return failureCollector -> {
-            copy.stream().forEach(a -> a.evaluate(failureCollector));
+            copy.stream().filter(a -> a != null).forEach(a -> a.evaluate(failureCollector));
             return failureCollector;
         };
     }

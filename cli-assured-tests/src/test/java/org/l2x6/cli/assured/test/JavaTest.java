@@ -148,13 +148,8 @@ public class JavaTest {
 
         Awaitility.waitAtMost(10, TimeUnit.SECONDS)
                 .until(() -> lines.size() == 1 && lines.contains("About to sleep for 500 ms"));
-        if (forcibly) {
-            proc.kill(forcibly);
-            proc.kill(forcibly);
-        } else {
-            proc.close();
-            proc.close();
-        }
+        proc.kill(forcibly);
+        proc.kill(forcibly);
 
         proc.awaitTermination().assertSuccess();
     }

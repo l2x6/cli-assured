@@ -35,6 +35,14 @@ public class TestApp {
             System.out.flush();
             System.exit(exitCode);
             break;
+        case "stdin":
+            byte[] buffer = new byte[8192];
+            int bytesRead;
+            while ((bytesRead = System.in.read(buffer)) >= 0) {
+                System.out.write(buffer, 0, bytesRead);
+            }
+            System.out.flush();
+            break;
         default:
             throw new RuntimeException("Unsupported subcommand " + args[0]);
         }

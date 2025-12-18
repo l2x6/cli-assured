@@ -4,7 +4,6 @@
  */
 package org.l2x6.cli.assured;
 
-import java.io.Closeable;
 import java.time.Duration;
 import org.l2x6.cli.assured.CliAssertUtils.ExcludeFromJacocoGeneratedReport;
 import org.l2x6.cli.assured.asserts.Assert;
@@ -17,11 +16,12 @@ import org.l2x6.cli.assured.asserts.ExitCodeAssert;
  * @since  0.0.1
  * @author <a href="https://github.com/ppalaga">Peter Palaga</a>
  */
-public class CommandProcess implements Closeable {
+public class CommandProcess {
 
     private final String cmdArrayString;
     private final Process process;
     private final Thread shutDownHook;
+    private final InputProducer stdin;
     private final OutputConsumer out;
     private final OutputConsumer err;
 
@@ -34,6 +34,7 @@ public class CommandProcess implements Closeable {
             Process process,
             Assert asserts,
             ExitCodeAssert exitCodeAssert,
+            InputProducer stdin,
             OutputConsumer out,
             OutputConsumer err) {
         super();
@@ -41,25 +42,16 @@ public class CommandProcess implements Closeable {
         this.process = process;
         this.asserts = asserts;
         this.exitCodeAssert = exitCodeAssert;
+        this.stdin = stdin;
         this.out = out;
         this.err = err;
         this.shutDownHook = new Thread(new Runnable() {
             @Override
             public void run() {
-                close();
+                kill(false);
             }
         });
         Runtime.getRuntime().addShutdownHook(shutDownHook);
-    }
-
-    /**
-     * A shorthand for {@link #kill(boolean) kill(false)}
-     *
-     * @since 0.0.1
-     */
-    @Override
-    public void close() {
-        kill(false);
     }
 
     /**
@@ -76,6 +68,9 @@ public class CommandProcess implements Closeable {
             out.cancel();
             if (err != null) {
                 err.cancel();
+            }
+            if (stdin != null) {
+                stdin.cancel();
             }
         }
 

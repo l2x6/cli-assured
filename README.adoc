@@ -77,6 +77,26 @@ CliAssured
     .assertSuccess();
 ----
 
+=== `stdin`
+
+[source,java]
+----
+import org.l2x6.cli.assured.CliAssured;
+
+CliAssured
+    .given()
+        .stdin("Hello world!")
+    .when()
+        .command("cat")
+    .then()
+        .stdout()
+            .hasLines("Hello world!")
+            .hasLineCount(1)
+    .execute()
+    .assertSuccess();
+----
+
+
 === `CliAssured.java()` - call the `java` executable of the current JVM
 
 Sometimes it comes in handy to call the `java` executable of the current JVM.
@@ -86,7 +106,6 @@ For example
 [source,java]
 ----
 import org.l2x6.cli.assured.CliAssured;
-...
 
 CliAssured
     .java()

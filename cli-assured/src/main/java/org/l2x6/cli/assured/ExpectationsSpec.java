@@ -29,14 +29,16 @@ public class ExpectationsSpec {
     private final boolean stderrToStdout;
     final Function<InputStream, OutputConsumer> stdout;
     final Function<InputStream, OutputConsumer> stderr;
+    private final int threadIndex;
     final ExitCodeAssert exitCodeAssert;
 
-    ExpectationsSpec(CommandSpec command, boolean stderrToStdout) {
+    ExpectationsSpec(CommandSpec command, boolean stderrToStdout, int threadIndex) {
         this.command = command;
         this.stderrToStdout = stderrToStdout;
-        this.stdout = in -> new DevNull(in, ProcessOutput.stdout);
-        this.stderr = in -> new OutputAsserts(in, StreamExpectations.hasNoLines(ProcessOutput.stderr));
+        this.stdout = in -> new DevNull(in, ProcessOutput.stdout, threadIndex);
+        this.stderr = in -> new OutputAsserts(in, StreamExpectations.hasNoLines(ProcessOutput.stderr), threadIndex);
         this.exitCodeAssert = ExitCodeAssert.exitCodeIs(0);
+        this.threadIndex = threadIndex;
     }
 
     ExpectationsSpec(
@@ -44,12 +46,14 @@ public class ExpectationsSpec {
             Function<InputStream, OutputConsumer> stdout,
             Function<InputStream, OutputConsumer> stderr,
             ExitCodeAssert exitCodeAssert,
-            boolean stderrToStdout) {
+            boolean stderrToStdout,
+            int threadIndex) {
         this.command = command;
         this.stdout = Objects.requireNonNull(stdout, "stdout");
         this.stderr = Objects.requireNonNull(stderr, "stderr");
         this.exitCodeAssert = Objects.requireNonNull(exitCodeAssert, "exitCodeAssert");
         this.stderrToStdout = stderrToStdout;
+        this.threadIndex = threadIndex;
     }
 
     /**
@@ -57,7 +61,7 @@ public class ExpectationsSpec {
      * @since  0.0.1
      */
     public StreamExpectationsSpec stdout() {
-        return new StreamExpectationsSpec(this::stdout, StreamExpectationsSpec.ProcessOutput.stdout);
+        return new StreamExpectationsSpec(this::stdout, StreamExpectationsSpec.ProcessOutput.stdout, threadIndex);
     }
 
     /**
@@ -69,7 +73,7 @@ public class ExpectationsSpec {
             throw new IllegalStateException(
                     "You cannot set any assertions on stderr while you are redirecting stderr to stdout");
         }
-        return new StreamExpectationsSpec(this::stderr, StreamExpectationsSpec.ProcessOutput.stderr);
+        return new StreamExpectationsSpec(this::stderr, StreamExpectationsSpec.ProcessOutput.stderr, threadIndex);
     }
 
     /**
@@ -80,7 +84,8 @@ public class ExpectationsSpec {
      * @since                   0.0.1
      */
     public ExpectationsSpec exitCodeIs(int expectedExitCode) {
-        return new ExpectationsSpec(command, stdout, stderr, ExitCodeAssert.exitCodeIs(expectedExitCode), stderrToStdout);
+        return new ExpectationsSpec(command, stdout, stderr, ExitCodeAssert.exitCodeIs(expectedExitCode), stderrToStdout,
+                threadIndex);
     }
 
     /**
@@ -91,7 +96,8 @@ public class ExpectationsSpec {
      * @since                    0.0.1
      */
     public ExpectationsSpec exitCodeIsAnyOf(int... expectedExitCodes) {
-        return new ExpectationsSpec(command, stdout, stderr, ExitCodeAssert.exitCodeIsAnyOf(expectedExitCodes), stderrToStdout);
+        return new ExpectationsSpec(command, stdout, stderr, ExitCodeAssert.exitCodeIsAnyOf(expectedExitCodes), stderrToStdout,
+                threadIndex);
     }
 
     /**
@@ -108,15 +114,15 @@ public class ExpectationsSpec {
      */
     public ExpectationsSpec exitCodeSatisfies(IntPredicate expected, String description) {
         return new ExpectationsSpec(command, stdout, stderr, ExitCodeAssert.exitCodeSatisfies(expected, description),
-                stderrToStdout);
+                stderrToStdout, threadIndex);
     }
 
     ExpectationsSpec stdout(Function<InputStream, OutputConsumer> stdoutAsserts) {
-        return new ExpectationsSpec(command, stdoutAsserts, stderr, exitCodeAssert, stderrToStdout);
+        return new ExpectationsSpec(command, stdoutAsserts, stderr, exitCodeAssert, stderrToStdout, threadIndex);
     }
 
     ExpectationsSpec stderr(Function<InputStream, OutputConsumer> stderrAsserts) {
-        return new ExpectationsSpec(command, stdout, stderrAsserts, exitCodeAssert, stderrToStdout);
+        return new ExpectationsSpec(command, stdout, stderrAsserts, exitCodeAssert, stderrToStdout, threadIndex);
     }
 
     /**

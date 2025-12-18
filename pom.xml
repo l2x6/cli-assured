@@ -363,7 +363,7 @@ SPDX-License-Identifier: Apache-2.0</inlineHeader>
                                         <exclude>mvnw</exclude>
                                         <exclude>mvnw.cmd</exclude>
                                         <exclude>.sdkmanrc</exclude>
-                                        <exclude>src/test/resources/iso-8859-2.txt</exclude>
+                                        <exclude>src/test/resources/*.txt</exclude>
                                     </excludes>
                                 </licenseSet>
                             </licenseSets>

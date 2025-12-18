@@ -101,6 +101,25 @@ public class EchoTest {
 
     @Test
     @DisabledOnOs(OS.WINDOWS)
+    void cat() {
+        // @formatter:off
+        CliAssured
+                .given()
+                    .stdin("Hello world!")
+                .when()
+                    .command("cat")
+                .then()
+                    .stdout()
+                        .hasLines("Hello world!")
+                        .hasLineCount(1)
+                    .exitCodeIsAnyOf(0)
+                .execute()
+                .assertSuccess();
+        // @formatter:on
+    }
+
+    @Test
+    @DisabledOnOs(OS.WINDOWS)
     void env() {
         CliAssured
                 .given()

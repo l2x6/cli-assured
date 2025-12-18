@@ -26,16 +26,15 @@ import org.l2x6.cli.assured.asserts.Assert;
  * @since  0.0.1
  */
 abstract class OutputConsumer implements Assert {
-    private static AtomicInteger threadCounter = new AtomicInteger();
     private final Thread thread;
     volatile boolean cancelled;
-    List<Throwable> exceptions = new ArrayList<>();
+    final List<Throwable> exceptions = new ArrayList<>();
     final InputStream in;
     final StreamExpectationsSpec.ProcessOutput stream;
     final AtomicInteger byteCount = new AtomicInteger();
 
-    OutputConsumer(InputStream in, StreamExpectationsSpec.ProcessOutput stream) {
-        this.thread = new Thread(this::run, "CliAssured-" + stream + "-" + threadCounter.getAndIncrement());
+    OutputConsumer(InputStream in, StreamExpectationsSpec.ProcessOutput stream, int threadIndex) {
+        this.thread = new Thread(this::run, "CliAssured-" + stream + "-" + threadIndex);
         this.in = in;
         this.stream = stream;
     }
@@ -74,8 +73,8 @@ abstract class OutputConsumer implements Assert {
      */
     static class DevNull extends OutputConsumer {
 
-        public DevNull(InputStream in, StreamExpectationsSpec.ProcessOutput stream) {
-            super(in, stream);
+        public DevNull(InputStream in, StreamExpectationsSpec.ProcessOutput stream, int threadIndex) {
+            super(in, stream, threadIndex);
         }
 
         @Override
@@ -106,8 +105,8 @@ abstract class OutputConsumer implements Assert {
     static class OutputAsserts extends OutputConsumer {
         private final StreamExpectations streamExpectations;
 
-        OutputAsserts(InputStream inputStream, StreamExpectations streamExpectations) {
-            super(inputStream, streamExpectations.stream);
+        OutputAsserts(InputStream inputStream, StreamExpectations streamExpectations, int threadIndex) {
+            super(inputStream, streamExpectations.stream, threadIndex);
             this.streamExpectations = Objects.requireNonNull(streamExpectations, "streamExpectations");
         }
 
