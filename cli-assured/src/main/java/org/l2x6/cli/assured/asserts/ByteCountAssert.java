@@ -4,8 +4,12 @@
  */
 package org.l2x6.cli.assured.asserts;
 
+import java.util.Objects;
+import java.util.function.LongPredicate;
 import java.util.function.Predicate;
+import org.l2x6.cli.assured.StreamExpectationsSpec;
 import org.l2x6.cli.assured.StreamExpectationsSpec.ProcessOutput;
+import org.l2x6.cli.assured.asserts.Assert.Internal.ExcludeFromJacocoGeneratedReport;
 
 /**
  * An assertion on a number of bytes produced by a command.
@@ -14,19 +18,62 @@ import org.l2x6.cli.assured.StreamExpectationsSpec.ProcessOutput;
  * @since  0.0.1
  */
 public class ByteCountAssert implements Assert {
-    private final Predicate<Long> expected;
+    private final LongPredicate expected;
     private volatile long actualCount;
     private final String description;
+    private final StreamExpectationsSpec.ProcessOutput stream;
 
-    private ByteCountAssert(Predicate<Long> expected, String description) {
-        this.expected = expected;
-        this.description = description;
+    /**
+     * Assert that upon termination of the associated process, the underlying output stream has produced the given number of
+     * bytes.
+     *
+     * @param  stream            the output stream to watch
+     * @param  expectedByteCount the number of bytes expected
+     *
+     * @return                   a new {@link ByteCountAssert}
+     * @since                    0.0.1
+     */
+    public static ByteCountAssert hasByteCount(ProcessOutput stream, long expectedByteCount) {
+        return new ByteCountAssert(actual -> isEqual(actual, expectedByteCount),
+                "Expected " + expectedByteCount + " bytes in ${stream} but found ${actual} bytes",
+                stream);
+    }
+
+    /**
+     * Assert that upon termination of the associated process, the underlying output stream's number of produced byted
+     * satisfies the given {@link Predicate}.
+     *
+     * @param  stream      the output stream to watch
+     * @param  expected    the condition the number of actual bytes must satisfy
+     * @param  description the description of a failure, typically something like
+     *                     {@code "Expected number of bytes <condition> in ${stream} but found ${actual} bytes"} where
+     *                     {@code <condition>} is your human readable criteria, like {@code greater that 42},
+     *                     <code>${stream}</code> is a placeholder that CLI Assured will replace by {@code stdout}
+     *                     or {@code stderr} and <code>${actual}</code> is a placeholder that CLI Assured will replace
+     *                     by the actual number of bytes found in the associated output stream
+     * @return             a new {@link ByteCountAssert}
+     * @since              0.0.1
+     */
+    public static ByteCountAssert hasByteCount(
+            StreamExpectationsSpec.ProcessOutput stream,
+            LongPredicate expected,
+            String description) {
+        return new ByteCountAssert(expected, description, stream);
+    }
+
+    private ByteCountAssert(
+            LongPredicate expected,
+            String description,
+            StreamExpectationsSpec.ProcessOutput stream) {
+        this.expected = Objects.requireNonNull(expected, "expected");
+        this.description = Objects.requireNonNull(description, "description");
+        this.stream = Objects.requireNonNull(stream, "stream");
     }
 
     @Override
     public FailureCollector evaluate(FailureCollector failureCollector) {
         if (!expected.test(actualCount)) {
-            failureCollector.failure(String.format(description, actualCount));
+            failureCollector.failure(Assert.Internal.formatMessage(description, this::eval));
         }
         return failureCollector;
     }
@@ -45,37 +92,22 @@ public class ByteCountAssert implements Assert {
         return this;
     }
 
-    /**
-     * Assert that upon termination of the associated process, the underlying output stream has produced the given number of
-     * bytes.
-     *
-     * @param  expectedByteCount the number of bytes expected
-     * @param  stream            the output stream to watch
-     * @return                   a new {@link ByteCountAssert}
-     * @since                    0.0.1
-     */
-    public static ByteCountAssert hasByteCount(long expectedByteCount, ProcessOutput stream) {
-        return new ByteCountAssert(actual -> isEqual(actual.longValue(), expectedByteCount),
-                "Expected " + expectedByteCount + " bytes in " + stream + " but found %d bytes");
+    @ExcludeFromJacocoGeneratedReport
+    String eval(String key) {
+        switch (key) {
+        case "actual":
+            return String.valueOf(actualCount);
+        case "stream":
+            return stream.name();
+        default:
+            throw new IllegalArgumentException("Unexpected placeholder '" + key + "' in " + ByteCountAssert.class.getName()
+                    + " description '" + description + "'.");
+        }
     }
 
     @ExcludeFromJacocoGeneratedReport
     static boolean isEqual(long actual, long expectedByteCount) {
         return actual == expectedByteCount;
-    }
-
-    /**
-     * Assert that upon termination of the associated process, the underlying output stream's number of produced byted
-     * satisfies the given {@link Predicate}.
-     *
-     * @param  expected    the condition the number of actual bytes must satisfy
-     * @param  description the description of a failure, typically something like
-     *                     {@code "Expected number of bytes <condition> but found %d bytes"}
-     * @return             a new {@link ByteCountAssert}
-     * @since              0.0.1
-     */
-    public static ByteCountAssert hasByteCount(Predicate<Long> expected, String description) {
-        return new ByteCountAssert(expected, description);
     }
 
 }

@@ -256,7 +256,7 @@ public class LineAssertTest {
         Assertions
                 .assertThatThrownBy(
                         LineAssert
-                                .hasLineCount(ProcessOutput.stdout, i -> i.intValue() < 1,
+                                .hasLineCount(ProcessOutput.stdout, i -> i < 1,
                                         "Expected number of lines < 1 in ${stream} but found ${actual} lines")
                                 .line("maz")
                                 .line("foo")

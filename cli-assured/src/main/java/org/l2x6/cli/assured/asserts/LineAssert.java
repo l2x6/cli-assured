@@ -15,15 +15,15 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
-import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
-import java.util.function.Function;
-import java.util.function.Predicate;
+import java.util.function.LongPredicate;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import org.l2x6.cli.assured.StreamExpectationsSpec;
+import org.l2x6.cli.assured.asserts.Assert.Internal.ExcludeFromJacocoGeneratedReport;
 
 /**
  * An assertion on a sequence of lines of a command output.
@@ -270,14 +270,14 @@ public interface LineAssert extends Assert {
      * @return                   a new {@link LineAssert}
      * @since                    0.0.1
      */
-    static LineAssert hasLineCount(StreamExpectationsSpec.ProcessOutput stream, int expectedLineCount) {
-        return new Internal.LineCountAssert(actual -> actual.intValue() == expectedLineCount,
+    static LineAssert hasLineCount(StreamExpectationsSpec.ProcessOutput stream, long expectedLineCount) {
+        return new Internal.LineCountAssert(actual -> actual == expectedLineCount,
                 "Expected " + expectedLineCount + " lines in ${stream} but found ${actual} lines", stream);
     }
 
     /**
      * Assert that upon termination of the associated process, the underlying output stream's number of lines satisfies
-     * the given {@link Predicate}.
+     * the given {@link LongPredicate}.
      *
      * @param  stream      the output stream to watch
      * @param  expected    the condition the number of actual lines must satisfy
@@ -291,7 +291,7 @@ public interface LineAssert extends Assert {
      * @return             a new {@link LineAssert}
      * @since              0.0.1
      */
-    public static LineAssert hasLineCount(StreamExpectationsSpec.ProcessOutput stream, Predicate<Integer> expected,
+    public static LineAssert hasLineCount(StreamExpectationsSpec.ProcessOutput stream, LongPredicate expected,
             String description) {
         return new Internal.LineCountAssert(expected, description, stream);
     }
@@ -309,24 +309,9 @@ public interface LineAssert extends Assert {
     }
 
     static final class Internal {
-        private static final Pattern PLACE_HOLDER_PATTERN = Pattern.compile("\\$\\{([^\\}]+)\\}");
 
         @ExcludeFromJacocoGeneratedReport
         private Internal() {
-        }
-
-        static String formatMessage(String message, Function<String, String> eval) {
-            Matcher m = PLACE_HOLDER_PATTERN.matcher(message);
-            StringBuffer sb = new StringBuffer();
-            while (m.find()) {
-                m.appendReplacement(sb, eval.apply(m.group(1)));
-            }
-            m.appendTail(sb);
-            return sb.toString();
-        }
-
-        static String list(Collection<? extends Object> list) {
-            return list.stream().map(Object::toString).collect(Collectors.joining("\n    "));
         }
 
         static class ConsumerLineAssert implements LineAssert {
@@ -423,7 +408,7 @@ public interface LineAssert extends Assert {
             public FailureCollector evaluate(FailureCollector failureCollector) {
                 synchronized (hits) {
                     if (!hits.isEmpty()) {
-                        failureCollector.failure(formatMessage(description, this::eval));
+                        failureCollector.failure(Assert.Internal.formatMessage(description, this::eval));
                     }
                 }
                 return failureCollector;
@@ -433,9 +418,9 @@ public interface LineAssert extends Assert {
             String eval(String key) {
                 switch (key) {
                 case "checks":
-                    return list(checks);
+                    return Assert.Internal.list(checks);
                 case "hits":
-                    return list(hits);
+                    return Assert.Internal.list(hits);
                 case "stream":
                     return stream.name();
                 default:
@@ -455,12 +440,12 @@ public interface LineAssert extends Assert {
         }
 
         static class LineCountAssert implements LineAssert {
-            private final Predicate<Integer> expected;
-            private final AtomicInteger actualCount = new AtomicInteger();
+            private final LongPredicate expected;
+            private final AtomicLong actualCount = new AtomicLong();
             private final String description;
             private final StreamExpectationsSpec.ProcessOutput stream;
 
-            private LineCountAssert(Predicate<Integer> expected, String description,
+            private LineCountAssert(LongPredicate expected, String description,
                     StreamExpectationsSpec.ProcessOutput stream) {
                 this.expected = Objects.requireNonNull(expected, "expected");
                 this.description = Objects.requireNonNull(description, "description");
@@ -470,7 +455,7 @@ public interface LineAssert extends Assert {
             @Override
             public FailureCollector evaluate(FailureCollector failureCollector) {
                 if (!expected.test(actualCount.get())) {
-                    failureCollector.failure(formatMessage(description, this::eval));
+                    failureCollector.failure(Assert.Internal.formatMessage(description, this::eval));
                 }
                 return failureCollector;
             }
@@ -479,7 +464,7 @@ public interface LineAssert extends Assert {
             String eval(String key) {
                 switch (key) {
                 case "actual":
-                    return String.valueOf(actualCount);
+                    return String.valueOf(actualCount.get());
                 case "stream":
                     return stream.name();
                 default:

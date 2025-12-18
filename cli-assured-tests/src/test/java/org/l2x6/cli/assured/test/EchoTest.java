@@ -23,7 +23,7 @@ public class EchoTest {
                 .hasLines("CLI Assured rocks!")
                 .hasLineCount(1)
                 .log()
-                .exitCode(0)
+                .exitCodeIsAnyOf(0)
                 .start()
                 .awaitTermination()
                 .assertSuccess();
@@ -39,7 +39,7 @@ public class EchoTest {
                 .hasLines("Poslušně hlásím, že jsem zase tady.")
                 .hasLineCount(1)
                 .log()
-                .exitCode(0)
+                .exitCodeIsAnyOf(0)
                 .start()
                 .awaitTermination()
                 .assertSuccess();
@@ -54,7 +54,7 @@ public class EchoTest {
                 .stdout()
                 .hasLines("CLI Assured rocks!")
                 .hasLineCount(1)
-                .exitCode(0)
+                .exitCodeIs(0)
                 .start()
                 .awaitTermination()
                 .assertSuccess();
@@ -69,7 +69,7 @@ public class EchoTest {
                 .stdout()
                 .hasLines("CLI Assured rocks!")
                 .hasLineCount(1)
-                .exitCode(0)
+                .exitCodeIsAnyOf(0)
                 .start()
                 .awaitTermination()
                 .assertSuccess();
@@ -93,7 +93,7 @@ public class EchoTest {
                     .stderr()
                         .hasLines("Really!")
                         .hasLineCount(1)
-                    .exitCode(0)
+                    .exitCodeIsAnyOf(0)
                 .execute()
                 .assertSuccess();
         // @formatter:on
@@ -116,7 +116,7 @@ public class EchoTest {
                 .stderr()
                 .hasLines("Really!")
                 .hasLineCount(1)
-                .exitCode(0)
+                .exitCodeIsAnyOf(0)
                 .execute()
                 .assertSuccess();
 
@@ -134,7 +134,7 @@ public class EchoTest {
                 .stderr()
                 .hasLines("Really!")
                 .hasLineCount(1)
-                .exitCode(0)
+                .exitCodeIsAnyOf(0)
                 .execute()
                 .assertSuccess();
 

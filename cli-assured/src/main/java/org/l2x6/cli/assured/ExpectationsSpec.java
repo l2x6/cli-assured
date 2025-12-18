@@ -8,6 +8,7 @@ import java.io.InputStream;
 import java.time.Duration;
 import java.util.Objects;
 import java.util.function.Function;
+import java.util.function.IntPredicate;
 import org.l2x6.cli.assured.OutputConsumer.DevNull;
 import org.l2x6.cli.assured.OutputConsumer.OutputAsserts;
 import org.l2x6.cli.assured.StreamExpectationsSpec.ProcessOutput;
@@ -35,7 +36,7 @@ public class ExpectationsSpec {
         this.stderrToStdout = stderrToStdout;
         this.stdout = in -> new DevNull(in, ProcessOutput.stdout);
         this.stderr = in -> new OutputAsserts(in, StreamExpectations.hasNoLines(ProcessOutput.stderr));
-        this.exitCodeAssert = ExitCodeAssert.of(0);
+        this.exitCodeAssert = ExitCodeAssert.exitCodeIs(0);
     }
 
     ExpectationsSpec(
@@ -72,14 +73,42 @@ public class ExpectationsSpec {
     }
 
     /**
-     * Assert that the process exits with any the given {@code expectedExitCodes}.
+     * Assert that the process exits with the given {@code expectedExitCode}.
+     *
+     * @param  expectedExitCode the exit code to assert
+     * @return                  an adjusted copy of this {@link ExpectationsSpec}
+     * @since                   0.0.1
+     */
+    public ExpectationsSpec exitCodeIs(int expectedExitCode) {
+        return new ExpectationsSpec(command, stdout, stderr, ExitCodeAssert.exitCodeIs(expectedExitCode), stderrToStdout);
+    }
+
+    /**
+     * Assert that the process exits with any of the given {@code expectedExitCodes}.
      *
      * @param  expectedExitCodes the exit codes to assert
      * @return                   an adjusted copy of this {@link ExpectationsSpec}
      * @since                    0.0.1
      */
-    public ExpectationsSpec exitCode(int... expectedExitCodes) {
-        return new ExpectationsSpec(command, stdout, stderr, ExitCodeAssert.any(expectedExitCodes), stderrToStdout);
+    public ExpectationsSpec exitCodeIsAnyOf(int... expectedExitCodes) {
+        return new ExpectationsSpec(command, stdout, stderr, ExitCodeAssert.exitCodeIsAnyOf(expectedExitCodes), stderrToStdout);
+    }
+
+    /**
+     * Assert that the process exits with an exit code that satisfies the given {@link IntPredicate}.
+     *
+     * @param  expected    the condition actual exit code must satisfy
+     * @param  description the description of a failure typically something like
+     *                     {@code "Expected exit code <condition> but actually terminated with exit code ${actual}"} where
+     *                     {@code <condition>} is your human readable criteria, like {@code greater that 42},
+     *                     and <code>${actual}</code> is a placeholder that CLI Assured will replace
+     *                     by the actual exit code of the process
+     * @return             an adjusted copy of this {@link ExpectationsSpec}
+     * @since              0.0.1
+     */
+    public ExpectationsSpec exitCodeSatisfies(IntPredicate expected, String description) {
+        return new ExpectationsSpec(command, stdout, stderr, ExitCodeAssert.exitCodeSatisfies(expected, description),
+                stderrToStdout);
     }
 
     ExpectationsSpec stdout(Function<InputStream, OutputConsumer> stdoutAsserts) {

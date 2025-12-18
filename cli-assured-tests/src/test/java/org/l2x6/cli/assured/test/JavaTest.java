@@ -143,7 +143,7 @@ public class JavaTest {
         List<String> lines = Collections.synchronizedList(new ArrayList<>());
         CommandProcess proc = run("sleep", "500")
                 .log(lines::add)
-                .exitCode(1, exitCodeLinux) // Windows, Linux
+                .exitCodeIsAnyOf(1, exitCodeLinux) // Windows, Linux
                 .start();
 
         Awaitility.waitAtMost(10, TimeUnit.SECONDS)
@@ -191,7 +191,7 @@ public class JavaTest {
                         run("sleep", "500")
                                 .hasLines("About to sleep for 500 ms")
                                 .hasLineCount(1)
-                                .exitCode(-1)
+                                .exitCodeIsAnyOf(-1)
                                 .execute(200)::assertSuccess)
                 .isInstanceOf(AssertionError.class)
                 .message().matches(Pattern.compile("1 exceptions occurred while executing\n"
@@ -508,7 +508,7 @@ public class JavaTest {
         {
             CommandResult result = run("hello", "Joe")
                     .hasLines("Hello Joe")
-                    .exitCode(0)
+                    .exitCodeIsAnyOf(0)
                     .start()
                     .awaitTermination()
                     .assertSuccess();
@@ -517,7 +517,7 @@ public class JavaTest {
 
         {
             CommandResult result = run("exitCode", "1")
-                    .exitCode(1)
+                    .exitCodeIsAnyOf(1)
                     .start()
                     .awaitTermination()
                     .assertSuccess();
@@ -529,7 +529,19 @@ public class JavaTest {
                     .awaitTermination();
 
             Assertions.assertThatThrownBy(result::assertSuccess).isInstanceOf(AssertionError.class)
-                    .message().endsWith("Failure 1/1: Expected exit code 0 but was 1");
+                    .message().endsWith("Failure 1/1: Expected exit code 0 but actually terminated with exit code 1");
+
+            Assertions.assertThat(result.exitCode()).isEqualTo(1);
+        }
+
+        {
+            CommandResult result = run("exitCode", "1")
+                    .exitCodeSatisfies(i -> i == 42, "Expected 42 but got ${actual}")
+                    .start()
+                    .awaitTermination();
+
+            Assertions.assertThatThrownBy(result::assertSuccess).isInstanceOf(AssertionError.class)
+                    .message().endsWith("Failure 1/1: Expected 42 but got 1");
 
             Assertions.assertThat(result.exitCode()).isEqualTo(1);
         }
@@ -542,7 +554,7 @@ public class JavaTest {
         {
             CommandResult result = run("hello", "Joe")
                     .hasLines("Hello Joe")
-                    .hasByteCount(cnt -> cnt == 10 || cnt == 11, "Expected 10 or 11 bytes but found %d bytes")
+                    .hasByteCount(cnt -> cnt == 10 || cnt == 11, "Expected 10 or 11 bytes but found ${actual} bytes")
                     .start()
                     .awaitTermination()
                     .assertSuccess();
@@ -568,13 +580,14 @@ public class JavaTest {
         {
             CommandResult result = run("hello", "Joel")
                     .hasLines("Hello Joel")
-                    .hasByteCount(cnt -> cnt > 20, "Expected bytes > 20 but found %d bytes")
+                    .hasByteCount(cnt -> cnt > 20, "Expected bytes > 20 in ${stream} but found ${actual} bytes")
                     .start()
                     .awaitTermination();
 
             Assertions.assertThatThrownBy(result::assertSuccess).isInstanceOf(AssertionError.class)
                     .hasMessageMatching(
-                            Pattern.compile(".*Failure 1/1: Expected bytes > 20 but found 1[1-2] bytes", Pattern.DOTALL));
+                            Pattern.compile(".*Failure 1/1: Expected bytes > 20 in stdout but found 1[1-2] bytes",
+                                    Pattern.DOTALL));
 
             Assertions.assertThat(result.byteCountStdout()).isBetween(11L, 12L);
         }

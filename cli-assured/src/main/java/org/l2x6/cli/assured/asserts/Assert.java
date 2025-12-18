@@ -12,11 +12,16 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
 import java.util.StringJoiner;
+import java.util.function.Function;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 /**
  * An abstract assertion.
@@ -25,9 +30,19 @@ import java.util.StringJoiner;
  * @author <a href="https://github.com/ppalaga">Peter Palaga</a>
  */
 public interface Assert {
-    @Retention(RetentionPolicy.RUNTIME)
-    @Target({ ElementType.CONSTRUCTOR, ElementType.METHOD })
-    public @interface ExcludeFromJacocoGeneratedReport {
+    /**
+     * Creates a new aggregate {@link Assert} failing if any of the component {@link Assert}s fails.
+     *
+     * @param  asserts the {@link Assert}s to aggregate.
+     * @return         a new aggregate {@link Assert}
+     * @since          0.0.1
+     */
+    static Assert all(Assert... asserts) {
+        final List<Assert> copy = Collections.unmodifiableList(new ArrayList<>(Arrays.asList(asserts)));
+        return failureCollector -> {
+            copy.stream().forEach(a -> a.evaluate(failureCollector));
+            return failureCollector;
+        };
     }
 
     /**
@@ -114,7 +129,7 @@ public interface Assert {
             }
         }
 
-        @ExcludeFromJacocoGeneratedReport
+        @org.l2x6.cli.assured.asserts.Assert.Internal.ExcludeFromJacocoGeneratedReport
         static void assertTwoTrailingNewLines(StringBuilder message) {
             final int len = message.length();
             if (len >= 2) {
@@ -346,19 +361,30 @@ public interface Assert {
         }
     }
 
-    /**
-     * Creates a new aggregate {@link Assert} failing if any of the component {@link Assert}s fails.
-     *
-     * @param  asserts the {@link Assert}s to aggregate.
-     * @return         a new aggregate {@link Assert}
-     * @since          0.0.1
-     */
-    static Assert all(Assert... asserts) {
-        final List<Assert> copy = Collections.unmodifiableList(new ArrayList<>(Arrays.asList(asserts)));
-        return failureCollector -> {
-            copy.stream().forEach(a -> a.evaluate(failureCollector));
-            return failureCollector;
-        };
-    }
+    static final class Internal {
+        @Retention(RetentionPolicy.RUNTIME)
+        @Target({ ElementType.CONSTRUCTOR, ElementType.METHOD })
+        public @interface ExcludeFromJacocoGeneratedReport {
+        }
 
+        private static final Pattern PLACE_HOLDER_PATTERN = Pattern.compile("\\$\\{([^\\}]+)\\}");
+
+        @ExcludeFromJacocoGeneratedReport
+        private Internal() {
+        }
+
+        static String formatMessage(String message, Function<String, String> eval) {
+            Matcher m = PLACE_HOLDER_PATTERN.matcher(message);
+            StringBuffer sb = new StringBuffer();
+            while (m.find()) {
+                m.appendReplacement(sb, eval.apply(m.group(1)));
+            }
+            m.appendTail(sb);
+            return sb.toString();
+        }
+
+        static String list(Collection<? extends Object> list) {
+            return list.stream().map(Object::toString).collect(Collectors.joining("\n    "));
+        }
+    }
 }

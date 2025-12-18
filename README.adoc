@@ -45,7 +45,7 @@ CliAssured
             .log() // Pass every line to org.l2x6.cli.assured.stdout logger
             .hasLineCount(1)
             .redirect(Path.of("hello.txt")) // redirect the output to hello.txt
-        .exitCode(0) // could be omitted as exit code 0 is enforced by default
+        .exitCodeIs(0) // could be omitted as exit code 0 is enforced by default
     .execute()
     .assertSuccess(); // Report all assertion errors
 ----
@@ -72,7 +72,7 @@ CliAssured
         .stderr()
             .hasLines("Really!")
             .hasLineCount(1)
-        .exitCode(0)
+        .exitCodeIs(0)
     .execute()
     .assertSuccess();
 ----

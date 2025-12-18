@@ -22,6 +22,8 @@ import java.util.Locale;
 import java.util.Objects;
 import java.util.function.Consumer;
 import java.util.function.Function;
+import java.util.function.IntPredicate;
+import java.util.function.LongPredicate;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 import java.util.regex.Matcher;
@@ -168,7 +170,7 @@ public class StreamExpectationsSpec {
 
     /**
      * Assert that upon termination of the associated process, the underlying output stream's number of lines satisfies
-     * the given {@link Predicate}.
+     * the given {@link LongPredicate}.
      *
      * @param  expected    the condition the number of actual lines must satisfy
      * @param  description the description of a failure typically something like
@@ -180,7 +182,7 @@ public class StreamExpectationsSpec {
      * @return             an adjusted copy of this {@link StreamExpectationsSpec}
      * @since              0.0.1
      */
-    public StreamExpectationsSpec hasLineCount(Predicate<Integer> expected, String description) {
+    public StreamExpectationsSpec hasLineCount(LongPredicate expected, String description) {
         return new StreamExpectationsSpec(expectations, stream,
                 CliAssertUtils.join(this.asserts, LineAssert.hasLineCount(stream, expected, description)), byteCountAssert,
                 charset,
@@ -197,7 +199,7 @@ public class StreamExpectationsSpec {
      */
     public StreamExpectationsSpec hasByteCount(long expectedByteCount) {
         return new StreamExpectationsSpec(expectations, stream, asserts,
-                ByteCountAssert.hasByteCount(expectedByteCount, stream),
+                ByteCountAssert.hasByteCount(stream, expectedByteCount),
                 charset, redirect);
     }
 
@@ -211,8 +213,12 @@ public class StreamExpectationsSpec {
      * @return             an adjusted copy of this {@link StreamExpectationsSpec}
      * @since              0.0.1
      */
-    public StreamExpectationsSpec hasByteCount(Predicate<Long> expected, String description) {
-        return new StreamExpectationsSpec(expectations, stream, asserts, ByteCountAssert.hasByteCount(expected, description),
+    public StreamExpectationsSpec hasByteCount(LongPredicate expected, String description) {
+        return new StreamExpectationsSpec(
+                expectations,
+                stream,
+                asserts,
+                ByteCountAssert.hasByteCount(stream, expected, description),
                 charset, redirect);
     }
 
@@ -225,7 +231,7 @@ public class StreamExpectationsSpec {
      * @since                    0.0.1
      */
     public StreamExpectationsSpec isEmpty() {
-        return new StreamExpectationsSpec(expectations, stream, asserts, ByteCountAssert.hasByteCount(0, stream), charset,
+        return new StreamExpectationsSpec(expectations, stream, asserts, ByteCountAssert.hasByteCount(stream, 0), charset,
                 redirect);
     }
 
@@ -512,15 +518,45 @@ public class StreamExpectationsSpec {
     }
 
     /**
-     * Assert that the process exits with any the given {@code expectedExitCodes},
-     * build new {@link StreamExpectations} and set it on the parent {@link ExpectationsSpec}
+     * Build new {@link StreamExpectations} and set it on the parent {@link ExpectationsSpec} and
+     * assert that the process exits with the given {@code expectedExitCode}.
+     *
+     * @param  expectedExitCode the exit code to assert
+     * @return                  an adjusted copy of this {@link ExpectationsSpec}
+     * @since                   0.0.1
+     */
+    public ExpectationsSpec exitCodeIs(int expectedExitCode) {
+        return parent().exitCodeIs(expectedExitCode);
+    }
+
+    /**
+     * Build new {@link StreamExpectations} and set it on the parent {@link ExpectationsSpec} and
+     * assert that the process exits with any of the given {@code expectedExitCodes},
+     *
      *
      * @param  expectedExitCodes the exit codes to assert
      * @return                   the parent {@link ExpectationsSpec}
      * @since                    0.0.1
      */
-    public ExpectationsSpec exitCode(int... expectedExitCodes) {
-        return parent().exitCode(expectedExitCodes);
+    public ExpectationsSpec exitCodeIsAnyOf(int... expectedExitCodes) {
+        return parent().exitCodeIsAnyOf(expectedExitCodes);
+    }
+
+    /**
+     * Build new {@link StreamExpectations} and set it on the parent {@link ExpectationsSpec} and
+     * assert that the process exits with an exit code that satisfies the given {@link IntPredicate}.
+     *
+     * @param  expected    the condition actual exit code must satisfy
+     * @param  description the description of a failure typically something like
+     *                     {@code "Expected exit code <condition> but actually terminated with exit code ${actual}"} where
+     *                     {@code <condition>} is your human readable criteria, like {@code greater that 42},
+     *                     and <code>${actual}</code> is a placeholder that CLI Assured will replace
+     *                     by the actual exit code of the process
+     * @return             an adjusted copy of this {@link ExpectationsSpec}
+     * @since              0.0.1
+     */
+    public ExpectationsSpec exitCodeSatisfies(IntPredicate expected, String description) {
+        return parent().exitCodeSatisfies(expected, description);
     }
 
     /**
