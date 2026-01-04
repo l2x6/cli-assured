@@ -442,14 +442,37 @@ public class JavaTest {
     @Test
     void redirect() {
 
-        Path out = Paths.get("target/" + JavaTest.class.getSimpleName() + ".redirect-" + UUID.randomUUID() + ".txt");
-        run("hello", "Joe")
+        UUID uuid = UUID.randomUUID();
+        Path out = Paths.get("target/" + JavaTest.class.getSimpleName() + "." + uuid + "-stdout.txt");
+        Path outErr = Paths.get("target/" + JavaTest.class.getSimpleName() + "." + uuid + "-stderr.txt");
+        CommandProcess proc = run("hello", "Joe")
                 .redirect(out)
-                .start()
-                .awaitTermination()
+                .stderr()
+                .redirect(outErr)
+                .start();
+        Assertions.assertThat(proc.toString())
+                .isEqualTo("cd " + Paths.get(".").toAbsolutePath().normalize()
+                        + " && " + javaExecutable() + " -cp " + testAppJar()
+                        + " org.l2x6.cli.assured.test.app.TestApp hello Joe > "+ Paths.get("target/JavaTest." + uuid
+                        + "-stdout.txt") +" 2> "+ Paths.get("target/JavaTest." + uuid + "-stderr.txt"));
+        proc.awaitTermination()
                 .assertSuccess();
         Assertions.assertThat(out).content(StandardCharsets.UTF_8).matches("^Hello Joe\r?\n$");
 
+    }
+
+    static String javaExecutable() {
+        final Path javaHome = Paths.get(System.getProperty("java.home"));
+        Path java = javaHome.resolve("bin/java");
+        final String exec;
+        if (Files.isRegularFile(java)) {
+            exec = java.toString();
+        } else if (Files.isRegularFile(java = javaHome.resolve("bin/java.exe"))) {
+            exec = java.toString();
+        } else {
+            throw new IllegalStateException("Could not locate java or java.exe in " + javaHome.resolve("bin"));
+        }
+        return exec;
     }
 
     @Test
@@ -680,6 +703,15 @@ public class JavaTest {
     }
 
     public static CommandSpec command(String... args) {
+        Path testAppJar = testAppJar();
+
+        return CliAssured
+                .java()
+                .args("-cp", testAppJar.toString(), TestApp.class.getName())
+                .args(args);
+    }
+
+    static Path testAppJar() {
         final String testAppArtifactId = "cli-assured-test-app";
         final String version = System.getProperty("project.version");
         Path testAppJar = Paths.get("../" + testAppArtifactId + "/target/" + testAppArtifactId + "-" + version + ".jar")
@@ -698,10 +730,6 @@ public class JavaTest {
             }
             testAppJar = testAppJarMavenRepo;
         }
-
-        return CliAssured
-                .java()
-                .args("-cp", testAppJar.toString(), TestApp.class.getName())
-                .args(args);
+        return testAppJar;
     }
 }

@@ -25,6 +25,7 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import org.l2x6.cli.assured.StreamExpectationsSpec;
 import org.l2x6.cli.assured.asserts.Assert.Internal.ExcludeFromJacocoGeneratedReport;
+import org.l2x6.cli.assured.asserts.LineAssert.Internal.LinesAssert;
 
 /**
  * An assertion on a sequence of lines of a command output.
@@ -59,7 +60,7 @@ public interface LineAssert extends Assert {
                 (line, hits) -> hits.remove(line),
                 "Expected lines\n\n    ${checks}\n\nto occur in ${stream} in any order, but lines\n\n    ${hits}\n\ndid not occur",
                 "Expected lines\n\n    ${checks}\n\nto occur in ${stream} in any order, but none of them occurred",
-                (ch, h) -> ch.containsAll(h) && h.containsAll(ch),
+                (ch, h) -> LinesAssert.haveSameElements(ch, h),
                 stream);
     }
 
@@ -83,7 +84,7 @@ public interface LineAssert extends Assert {
                 },
                 "Expected none of the lines\n\n    ${checks}\n\nto occur in ${stream}, but the following lines occurred:\n\n    ${hits}\n\n",
                 "Expected none of the lines\n\n    ${checks}\n\nto occur in ${stream}, but all of them occurred",
-                (ch, h) -> ch.containsAll(h) && h.containsAll(ch),
+                (ch, h) -> LinesAssert.haveSameElements(ch, h),
                 stream);
     }
 
@@ -131,7 +132,7 @@ public interface LineAssert extends Assert {
                 },
                 "Expected lines containing\n\n    ${checks}\n\nto occur in ${stream}, but the following substrings did not occur:\n\n    ${hits}\n\n",
                 "Expected lines containing\n\n    ${checks}\n\nto occur in ${stream}, but none of them occurred",
-                (ch, h) -> ch.containsAll(h) && h.containsAll(ch),
+                (ch, h) -> LinesAssert.haveSameElements(ch, h),
                 stream);
     }
 
@@ -187,7 +188,7 @@ public interface LineAssert extends Assert {
                 },
                 "Expected lines containing\n\n    ${checks}\n\nusing case insensitive comparison to occur in ${stream}, but the following substrings did not occur:\n\n    ${hits}\n\n",
                 "Expected lines containing\n\n    ${checks}\n\nusing case insensitive comparison to occur in ${stream}, but none of them occurred",
-                (ch, h) -> ch.containsAll(h) && h.containsAll(ch),
+                (ch, h) -> LinesAssert.haveSameElements(ch, h),
                 stream);
     }
 
@@ -473,6 +474,11 @@ public interface LineAssert extends Assert {
                     lineConsumer.accept(line, hits);
                 }
                 return this;
+            }
+
+            @ExcludeFromJacocoGeneratedReport
+            static boolean haveSameElements(Collection<String> ch, Collection<String> h) {
+                return ch.containsAll(h) && h.containsAll(ch);
             }
 
         }

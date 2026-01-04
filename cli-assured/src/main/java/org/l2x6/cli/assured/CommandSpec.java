@@ -6,7 +6,6 @@ package org.l2x6.cli.assured;
 
 import java.io.BufferedWriter;
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.io.UncheckedIOException;
@@ -25,11 +24,10 @@ import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
-import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 import org.l2x6.cli.assured.CliAssertUtils.ExcludeFromJacocoGeneratedReport;
+import org.l2x6.cli.assured.StreamExpectationsSpec.StreamExpectations;
 import org.l2x6.cli.assured.asserts.Assert;
 import org.slf4j.LoggerFactory;
 
@@ -361,15 +359,23 @@ public class CommandSpec {
      */
     @ExcludeFromJacocoGeneratedReport
     public CommandProcess start() {
-        String[] cmdArray = asCmdArray(executable, arguments);
-        String cmdArrayString = Arrays.stream(cmdArray).map(CommandSpec::quote).collect(Collectors.joining(" "));
-        log.info(
-                "Executing\n\n    cd {} &&{} {}{}\n",
-                cd,
-                envString(env),
-                cmdArrayString,
-                stderrToStdout ? " 2>&1" : "",
-                env);
+        final String[] cmdArray = asCmdArray(executable, arguments);
+
+        final StringBuilder cmdStringBuilder = new StringBuilder()
+                .append("cd ")
+                .append(CommandSpec.quote(cd.toString()))
+                .append(" &&");
+        for (Entry<String, String> en : env.entrySet()) {
+            cmdStringBuilder.append(' ').append(en.getKey()).append('=').append(quote(en.getValue()));
+        }
+        Arrays.stream(cmdArray).map(CommandSpec::quote).forEach(item -> cmdStringBuilder.append(' ').append(item));
+        if (stderrToStdout) {
+            cmdStringBuilder.append(" 2>&1");
+        }
+        expectations.appendRedirects(cmdStringBuilder);
+        final String cmdString = cmdStringBuilder.toString();
+
+        log.info("Executing\n\n    {}\n", cmdString);
         ProcessBuilder builder = new ProcessBuilder(cmdArray) //
                 .directory(cd.toFile()) //
                 .redirectErrorStream(stderrToStdout);
@@ -378,15 +384,15 @@ public class CommandSpec {
         }
         try {
             final Process process = builder.start();
-            final OutputConsumer out = expectations.stdout.apply(process.getInputStream());
+            final OutputConsumer out = expectations.stdout.consume(process.getInputStream());
             out.start();
 
             final OutputConsumer err;
-            final Function<InputStream, OutputConsumer> stde = expectations.stderr;
+            final StreamExpectations stde = expectations.stderr;
             if (stde == null) {
                 err = null;
             } else {
-                err = stde.apply(process.getErrorStream());
+                err = stde.consume(process.getErrorStream());
                 err.start();
             }
 
@@ -399,7 +405,7 @@ public class CommandSpec {
             }
 
             return new CommandProcess(
-                    cmdArrayString,
+                    cmdString,
                     process,
                     Assert.all(out, err, stdinProcess, expectations.exitCodeAssert),
                     expectations.exitCodeAssert,
@@ -407,7 +413,7 @@ public class CommandSpec {
                     out,
                     err);
         } catch (IOException e) {
-            throw new UncheckedIOException("Could not execute " + cmdArrayString, e);
+            throw new UncheckedIOException("Could not execute " + cmdString, e);
         }
     }
 
@@ -468,17 +474,6 @@ public class CommandSpec {
             result[i++] = arg;
         }
         return result;
-    }
-
-    static String envString(Map<String, String> env) {
-        if (env.isEmpty()) {
-            return "";
-        }
-        StringBuilder sb = new StringBuilder();
-        for (Entry<String, String> en : env.entrySet()) {
-            sb.append(' ').append(en.getKey()).append('=').append(quote(en.getValue()));
-        }
-        return sb.toString();
     }
 
     static String quote(String string) {
