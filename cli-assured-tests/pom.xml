@@ -24,6 +24,10 @@
         </dependency>
         <dependency>
             <groupId>org.l2x6.cli-assured</groupId>
+            <artifactId>mvn-assured</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.l2x6.cli-assured</groupId>
             <artifactId>cli-assured-test-app</artifactId>
             <scope>test</scope>
         </dependency>
@@ -100,6 +104,39 @@
                                             </includes>
                                             <filtering>false</filtering>
                                         </resource>
+                                        <resource>
+                                            <directory>${project.basedir}/../mvn-assured/target/classes</directory>
+                                            <includes>
+                                                <include>**</include>
+                                            </includes>
+                                            <filtering>false</filtering>
+                                        </resource>
+                                    </resources>
+                                </configuration>
+                            </execution>
+                            <execution>
+                                <id>copy-runtime-sources</id>
+                                <phase>prepare-package</phase>
+                                <goals>
+                                    <goal>copy-resources</goal>
+                                </goals>
+                                <configuration>
+                                    <outputDirectory>${project.basedir}/src/main/java</outputDirectory>
+                                    <resources>
+                                        <resource>
+                                            <directory>${project.basedir}/../cli-assured/src/main/java</directory>
+                                            <includes>
+                                                <include>**</include>
+                                            </includes>
+                                            <filtering>false</filtering>
+                                        </resource>
+                                        <resource>
+                                            <directory>${project.basedir}/../mvn-assured/src/main/java</directory>
+                                            <includes>
+                                                <include>**</include>
+                                            </includes>
+                                            <filtering>false</filtering>
+                                        </resource>
                                     </resources>
                                 </configuration>
                             </execution>
@@ -112,6 +149,7 @@
                             <includes>
                                 <include>org/l2x6/cli/assured/*</include>
                                 <include>org/l2x6/cli/assured/asserts/*</include>
+                                <include>org/l2x6/mvn/assured/*</include>
                             </includes>
                             <excludes>
                                 <exclude>org/l2x6/cli/assured/asserts/*AppendableWriter*</exclude>
@@ -168,9 +206,31 @@
                                     <goal>clean</goal>
                                 </goals>
                                 <configuration>
+                                    <excludeDefaultDirectories>true</excludeDefaultDirectories>
                                     <filesets>
                                         <fileset>
                                             <directory>${project.basedir}/target/classes</directory>
+                                        </fileset>
+                                        <fileset>
+                                            <directory>${project.basedir}/src/main</directory>
+                                        </fileset>
+                                    </filesets>
+                                </configuration>
+                            </execution>
+                            <execution>
+                                <id>cleanup-before-compile</id>
+                                <phase>generate-sources</phase>
+                                <goals>
+                                    <goal>clean</goal>
+                                </goals>
+                                <configuration>
+                                    <excludeDefaultDirectories>true</excludeDefaultDirectories>
+                                    <filesets>
+                                        <fileset>
+                                            <directory>${project.basedir}/target/classes</directory>
+                                        </fileset>
+                                        <fileset>
+                                            <directory>${project.basedir}/src/main</directory>
                                         </fileset>
                                     </filesets>
                                 </configuration>

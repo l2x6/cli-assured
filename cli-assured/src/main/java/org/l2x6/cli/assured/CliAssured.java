@@ -35,7 +35,7 @@ public class CliAssured {
      * @since  0.0.1
      */
     public static CommandSpec java() {
-        return new CommandSpec(CommandSpec.javaExecutable(), Collections.emptyList());
+        return new CommandSpec(CommandSpec::javaExecutable, Collections.emptyList());
     }
 
     /**
@@ -45,6 +45,6 @@ public class CliAssured {
      * @since             0.0.1
      */
     public static CommandSpec command(String executable, String... args) {
-        return new CommandSpec(executable, Collections.unmodifiableList(new ArrayList<>(Arrays.asList(args))));
+        return new CommandSpec(() -> executable, Collections.unmodifiableList(new ArrayList<>(Arrays.asList(args))));
     }
 }

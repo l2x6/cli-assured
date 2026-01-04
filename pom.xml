@@ -47,7 +47,8 @@
     <properties>
 
         <!-- Dependency versions in alphabectic order -->
-        <slf4j-version>2.0.17</slf4j-version>
+        <commons-compress.version>1.28.0</commons-compress.version>
+        <slf4j.version>2.0.17</slf4j.version>
         <junit.version>5.13.4</junit.version>
         <assertj.version>3.27.6</assertj.version>
         <awaitility.version>4.3.0</awaitility.version>
@@ -98,6 +99,7 @@
 
     <modules>
         <module>cli-assured</module>
+        <module>mvn-assured</module>
         <module>cli-assured-test-app</module>
         <module>cli-assured-tests</module>
     </modules>
@@ -114,17 +116,27 @@
                 <artifactId>cli-assured-test-app</artifactId>
                 <version>${project.version}</version>
             </dependency>
+            <dependency>
+                <groupId>org.l2x6.cli-assured</groupId>
+                <artifactId>mvn-assured</artifactId>
+                <version>${project.version}</version>
+            </dependency>
 
+            <dependency>
+                <groupId>org.apache.commons</groupId>
+                <artifactId>commons-compress</artifactId>
+                <version>${commons-compress.version}</version>
+            </dependency>
             <dependency>
                 <groupId>org.slf4j</groupId>
                 <artifactId>slf4j-api</artifactId>
-                <version>${slf4j-version}</version>
+                <version>${slf4j.version}</version>
             </dependency>
 
             <dependency>
                 <groupId>org.slf4j</groupId>
                 <artifactId>slf4j-simple</artifactId>
-                <version>${slf4j-version}</version>
+                <version>${slf4j.version}</version>
             </dependency>
 
             <dependency>
@@ -357,6 +369,7 @@ SPDX-License-Identifier: Apache-2.0</inlineHeader>
                                         <exclude>**/create-extension-templates/*</exclude>
                                         <exclude>**/README.*</exclude>
                                         <exclude>**/.gitkeep</exclude>
+                                        <exclude>**/ComparableVersion.java</exclude><!-- Keep the original header -->
                                         <exclude>.gitattributes/</exclude>
                                         <exclude>.mvn/wrapper/</exclude>
                                         <exclude>LICENSE</exclude>

@@ -1,0 +1,2 @@
+# When jacoco fails, we do not want git to check in src/main/java
+src/main
