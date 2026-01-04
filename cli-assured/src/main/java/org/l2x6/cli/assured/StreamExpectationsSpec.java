@@ -31,6 +31,7 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.l2x6.cli.assured.CliAssertUtils.ExcludeFromJacocoGeneratedReport;
+import org.l2x6.cli.assured.OutputConsumer.DevNull;
 import org.l2x6.cli.assured.asserts.Assert;
 import org.l2x6.cli.assured.asserts.ByteCountAssert;
 import org.l2x6.cli.assured.asserts.LineAssert;
@@ -44,17 +45,17 @@ import org.slf4j.LoggerFactory;
  */
 public class StreamExpectationsSpec {
 
-    private final Function<Function<InputStream, OutputConsumer>, ExpectationsSpec> expectations;
+    private final Function<StreamExpectations, ExpectationsSpec> expectations;
     private final StreamExpectationsSpec.ProcessOutput stream;
 
     private final List<LineAssert> asserts;
     private final ByteCountAssert byteCountAssert;
     private final Charset charset;
-    private final Supplier<OutputStream> redirect;
+    private final Redirect redirect;
     private final int threadIndex;
 
     StreamExpectationsSpec(
-            Function<Function<InputStream, OutputConsumer>, ExpectationsSpec> expectations,
+            Function<StreamExpectations, ExpectationsSpec> expectations,
             ProcessOutput stream, int threadIndex) {
         this.expectations = expectations;
         this.stream = stream;
@@ -66,12 +67,13 @@ public class StreamExpectationsSpec {
     }
 
     StreamExpectationsSpec(
-            Function<Function<InputStream, OutputConsumer>, ExpectationsSpec> expectations,
+            Function<StreamExpectations, ExpectationsSpec> expectations,
             StreamExpectationsSpec.ProcessOutput stream,
             List<LineAssert> asserts,
             ByteCountAssert byteCountAssert,
             Charset charset,
-            Supplier<OutputStream> redirect, int threadIndex) {
+            Redirect redirect,
+            int threadIndex) {
         this.expectations = expectations;
         this.stream = stream;
         this.asserts = asserts;
@@ -466,9 +468,11 @@ public class StreamExpectationsSpec {
      * @since       0.0.1
      */
     public StreamExpectationsSpec redirect(Path file) {
-        return new StreamExpectationsSpec(expectations, stream, asserts, byteCountAssert, charset, () -> {
-            return openFile(file);
-        }, threadIndex);
+        return new StreamExpectationsSpec(expectations, stream, asserts, byteCountAssert, charset,
+                new Redirect(() -> {
+                    return openFile(file);
+                }, sb -> sb.append(stream.redirectOperator()).append(file.toString())),
+                threadIndex);
     }
 
     @ExcludeFromJacocoGeneratedReport
@@ -491,7 +495,10 @@ public class StreamExpectationsSpec {
      */
     public StreamExpectationsSpec redirect(OutputStream outputStream) {
         return new StreamExpectationsSpec(expectations, stream, asserts, byteCountAssert, charset,
-                () -> new StreamExpectationsSpec.NonClosingOut(outputStream), threadIndex);
+                new Redirect(
+                        () -> new StreamExpectationsSpec.NonClosingOut(outputStream),
+                        sb -> sb.append(stream.redirectOperator()).append(outputStream.getClass().getName())),
+                threadIndex);
     }
 
     /**
@@ -631,14 +638,14 @@ public class StreamExpectationsSpec {
         return parent().execute(timeoutMs);
     }
 
-    Function<InputStream, OutputConsumer> build() {
-        final StreamExpectations streamExpectations = new StreamExpectations(
+    StreamExpectations build() {
+        return new StreamExpectations(
                 asserts,
                 byteCountAssert,
                 charset,
                 redirect,
-                stream);
-        return in -> new OutputConsumer.OutputAsserts(in, streamExpectations, threadIndex);
+                stream,
+                threadIndex);
     }
 
     /**
@@ -652,34 +659,93 @@ public class StreamExpectationsSpec {
         return expectations.apply(build());
     }
 
+    /**
+     * An output redirect of a process.
+     *
+     * @author <a href="https://github.com/ppalaga">Peter Palaga</a>
+     * @since  0.0.1
+     */
+    class Redirect {
+
+        private final Supplier<OutputStream> delegate;
+        private final Consumer<StringBuilder> toString;
+
+        Redirect(Supplier<OutputStream> delegate, Consumer<StringBuilder> toString) {
+            this.delegate = delegate;
+            this.toString = toString;
+        }
+
+        /**
+         * @return open an {@link OutputStream} to which the process can write its output
+         */
+        public OutputStream openStream() {
+            return delegate.get();
+        }
+
+        /**
+         * Append the redirect information to the given {@link StringBuilder}
+         *
+         * @param sb the {@link StringBuilder} to append to
+         */
+        public void toString(StringBuilder sb) {
+            toString.accept(sb);
+        }
+
+        @ExcludeFromJacocoGeneratedReport
+        public String toString() {
+            final StringBuilder sb = new StringBuilder();
+            toString.accept(sb);
+            return sb.toString();
+        }
+
+    }
+
     static class StreamExpectations {
 
         private final List<LineAssert> lineAsserts;
         private final ByteCountAssert byteCountAssert;
         final Charset charset;
-        final Supplier<OutputStream> redirect;
+        final Redirect redirect;
         final StreamExpectationsSpec.ProcessOutput stream;
+        final int threadIndex;
 
-        static StreamExpectations hasNoLines(StreamExpectationsSpec.ProcessOutput stream) {
+        static StreamExpectations hasNoLines(StreamExpectationsSpec.ProcessOutput stream, int threadIndex) {
             return new StreamExpectations(
                     Collections.singletonList(LineAssert.doesNotHaveAnyLines(stream)),
                     null,
                     StandardCharsets.UTF_8,
                     null,
-                    stream);
+                    stream,
+                    threadIndex);
+        }
+
+        static StreamExpectations devNull(ProcessOutput stream, int threadIndex) {
+            return new StreamExpectations(
+                    Collections.emptyList(),
+                    null,
+                    StandardCharsets.UTF_8,
+                    null,
+                    stream,
+                    threadIndex) {
+                public OutputConsumer consume(InputStream in) {
+                    return new DevNull(in, ProcessOutput.stdout, threadIndex);
+                }
+            };
         }
 
         StreamExpectations(
                 List<LineAssert> lineAsserts,
                 ByteCountAssert byteCountAssert,
                 Charset charset,
-                Supplier<OutputStream> redirect,
-                StreamExpectationsSpec.ProcessOutput stream) {
+                Redirect redirect,
+                StreamExpectationsSpec.ProcessOutput stream,
+                int threadIndex) {
             this.lineAsserts = Objects.requireNonNull(lineAsserts, "lineAsserts");
             this.byteCountAssert = byteCountAssert;
             this.charset = Objects.requireNonNull(charset, "charset");
             this.redirect = redirect;
             this.stream = stream;
+            this.threadIndex = threadIndex;
         }
 
         public void assertSatisfied(long byteCount, Assert.FailureCollector failureCollector) {
@@ -698,12 +764,22 @@ public class StreamExpectationsSpec {
             return charset;
         }
 
-        public Supplier<OutputStream> redirect() {
+        public Redirect redirect() {
             return redirect;
         }
 
         public boolean hasLineAsserts() {
             return lineAsserts.size() > 0;
+        }
+
+        public OutputConsumer consume(InputStream in) {
+            return new OutputConsumer.OutputAsserts(in, this);
+        }
+
+        public void appendRedirect(StringBuilder sb) {
+            if (redirect != null) {
+                redirect.toString(sb);
+            }
         }
     }
 
@@ -720,7 +796,17 @@ public class StreamExpectationsSpec {
     }
 
     public static enum ProcessOutput {
-        stdout, stderr
+        stdout(" > "), stderr(" 2> ");
+
+        private final String redirectOperator;
+
+        private ProcessOutput(String redirectOperator) {
+            this.redirectOperator = redirectOperator;
+        }
+
+        public String redirectOperator() {
+            return redirectOperator;
+        }
     }
 
 }

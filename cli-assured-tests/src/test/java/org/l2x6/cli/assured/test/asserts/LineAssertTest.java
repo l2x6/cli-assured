@@ -269,11 +269,11 @@ public class LineAssertTest {
                 .assertThatThrownBy(
                         LineAssert.doesNotHaveLinesMatchingPatterns(ProcessOutput.stdout, Arrays.asList(Pattern.compile("o+")))
                                 .line("maz")
-                                .line("foo")
+                                .line("foo boo")
                                 .evaluate(new Assert.FailureCollector("test-command"))::assertSatisfied)
                 .isInstanceOf(AssertionError.class)
                 .message().endsWith(
-                        "Failure 1/1: Expected no lines matching\n\n    o+\n\nto occur in stdout, but some of the patterns matched the lines\n\n    f>>oo<<\n\n");
+                        "Failure 1/1: Expected no lines matching\n\n    o+\n\nto occur in stdout, but some of the patterns matched the lines\n\n    f>>oo<< b>>oo<<\n\n");
     }
 
     @Test

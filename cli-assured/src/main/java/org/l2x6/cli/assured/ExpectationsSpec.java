@@ -4,13 +4,9 @@
  */
 package org.l2x6.cli.assured;
 
-import java.io.InputStream;
 import java.time.Duration;
 import java.util.Objects;
-import java.util.function.Function;
 import java.util.function.IntPredicate;
-import org.l2x6.cli.assured.OutputConsumer.DevNull;
-import org.l2x6.cli.assured.OutputConsumer.OutputAsserts;
 import org.l2x6.cli.assured.StreamExpectationsSpec.ProcessOutput;
 import org.l2x6.cli.assured.StreamExpectationsSpec.StreamExpectations;
 import org.l2x6.cli.assured.asserts.ExitCodeAssert;
@@ -27,24 +23,24 @@ public class ExpectationsSpec {
     static final Logger log = LoggerFactory.getLogger(ExpectationsSpec.class);
     private final CommandSpec command;
     private final boolean stderrToStdout;
-    final Function<InputStream, OutputConsumer> stdout;
-    final Function<InputStream, OutputConsumer> stderr;
+    final StreamExpectations stdout;
+    final StreamExpectations stderr;
     private final int threadIndex;
     final ExitCodeAssert exitCodeAssert;
 
     ExpectationsSpec(CommandSpec command, boolean stderrToStdout, int threadIndex) {
         this.command = command;
         this.stderrToStdout = stderrToStdout;
-        this.stdout = in -> new DevNull(in, ProcessOutput.stdout, threadIndex);
-        this.stderr = in -> new OutputAsserts(in, StreamExpectations.hasNoLines(ProcessOutput.stderr), threadIndex);
+        this.stdout = StreamExpectations.devNull(ProcessOutput.stdout, threadIndex);
+        this.stderr = StreamExpectations.hasNoLines(ProcessOutput.stderr, threadIndex);
         this.exitCodeAssert = ExitCodeAssert.exitCodeIs(0);
         this.threadIndex = threadIndex;
     }
 
     ExpectationsSpec(
             CommandSpec command,
-            Function<InputStream, OutputConsumer> stdout,
-            Function<InputStream, OutputConsumer> stderr,
+            StreamExpectations stdout,
+            StreamExpectations stderr,
             ExitCodeAssert exitCodeAssert,
             boolean stderrToStdout,
             int threadIndex) {
@@ -117,11 +113,11 @@ public class ExpectationsSpec {
                 stderrToStdout, threadIndex);
     }
 
-    ExpectationsSpec stdout(Function<InputStream, OutputConsumer> stdoutAsserts) {
+    ExpectationsSpec stdout(StreamExpectations stdoutAsserts) {
         return new ExpectationsSpec(command, stdoutAsserts, stderr, exitCodeAssert, stderrToStdout, threadIndex);
     }
 
-    ExpectationsSpec stderr(Function<InputStream, OutputConsumer> stderrAsserts) {
+    ExpectationsSpec stderr(StreamExpectations stderrAsserts) {
         return new ExpectationsSpec(command, stdout, stderrAsserts, exitCodeAssert, stderrToStdout, threadIndex);
     }
 
@@ -180,6 +176,11 @@ public class ExpectationsSpec {
 
     CommandSpec parent() {
         return command.expect(this);
+    }
+
+    void appendRedirects(StringBuilder sb) {
+        stdout.appendRedirect(sb);
+        stderr.appendRedirect(sb);
     }
 
 }

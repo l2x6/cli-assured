@@ -18,7 +18,7 @@ import org.l2x6.cli.assured.asserts.ExitCodeAssert;
  */
 public class CommandProcess {
 
-    private final String cmdArrayString;
+    private final String cmdString;
     private final Process process;
     private final Thread shutDownHook;
     private final InputProducer stdin;
@@ -38,7 +38,7 @@ public class CommandProcess {
             OutputConsumer out,
             OutputConsumer err) {
         super();
-        this.cmdArrayString = cmdArrayString;
+        this.cmdString = cmdArrayString;
         this.process = process;
         this.asserts = asserts;
         this.exitCodeAssert = exitCodeAssert;
@@ -142,7 +142,7 @@ public class CommandProcess {
             }
         } while (System.currentTimeMillis() - startMillisTime <= timeoutMs);
         return new CommandResult(
-                cmdArrayString,
+                cmdString,
                 -1,
                 Duration.ofMillis(System.currentTimeMillis() - startMillisTime),
                 out.byteCount(),
@@ -172,13 +172,17 @@ public class CommandProcess {
 
         exitCodeAssert.exitCode(exitCode);
         return new CommandResult(
-                cmdArrayString,
+                cmdString,
                 exitCode,
                 Duration.ofMillis(System.currentTimeMillis() - startMillisTime),
                 out.byteCount(),
                 err != null ? err.byteCount() : 0,
                 null,
                 asserts);
+    }
+
+    public String toString() {
+        return cmdString;
     }
 
 }

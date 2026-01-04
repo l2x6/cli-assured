@@ -14,8 +14,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.function.Supplier;
 import org.l2x6.cli.assured.CliAssertUtils.ExcludeFromJacocoGeneratedReport;
+import org.l2x6.cli.assured.StreamExpectationsSpec.Redirect;
 import org.l2x6.cli.assured.StreamExpectationsSpec.StreamExpectations;
 import org.l2x6.cli.assured.asserts.Assert;
 
@@ -105,8 +105,8 @@ abstract class OutputConsumer implements Assert {
     static class OutputAsserts extends OutputConsumer {
         private final StreamExpectations streamExpectations;
 
-        OutputAsserts(InputStream inputStream, StreamExpectations streamExpectations, int threadIndex) {
-            super(inputStream, streamExpectations.stream, threadIndex);
+        OutputAsserts(InputStream inputStream, StreamExpectations streamExpectations) {
+            super(inputStream, streamExpectations.stream, streamExpectations.threadIndex);
             this.streamExpectations = Objects.requireNonNull(streamExpectations, "streamExpectations");
         }
 
@@ -138,11 +138,11 @@ abstract class OutputConsumer implements Assert {
             }
         }
 
-        InputStream redirect(InputStream in, Supplier<OutputStream> redirect) {
+        InputStream redirect(InputStream in, Redirect redirect) {
             if (redirect == null) {
                 return new CountedInputStream(in, byteCount);
             }
-            return new RedirectInputStream(in, redirect.get(), byteCount);
+            return new RedirectInputStream(in, redirect.openStream(), byteCount);
         }
 
         public FailureCollector evaluate(FailureCollector failureCollector) {
