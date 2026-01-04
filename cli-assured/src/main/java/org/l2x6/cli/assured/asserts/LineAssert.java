@@ -17,6 +17,7 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.BiConsumer;
+import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.LongPredicate;
 import java.util.regex.Matcher;
@@ -53,10 +54,12 @@ public interface LineAssert extends Assert {
      */
     static LineAssert hasLines(StreamExpectationsSpec.ProcessOutput stream, Collection<String> lines) {
         return new Internal.LinesAssert<String, String>(
-                Collections.unmodifiableList(new ArrayList<>(lines)),
+                Collections.unmodifiableSet(new LinkedHashSet<>(lines)),
                 new LinkedHashSet<>(lines),
                 (line, hits) -> hits.remove(line),
                 "Expected lines\n\n    ${checks}\n\nto occur in ${stream} in any order, but lines\n\n    ${hits}\n\ndid not occur",
+                "Expected lines\n\n    ${checks}\n\nto occur in ${stream} in any order, but none of them occurred",
+                (ch, h) -> ch.containsAll(h) && h.containsAll(ch),
                 stream);
     }
 
@@ -79,6 +82,8 @@ public interface LineAssert extends Assert {
                     }
                 },
                 "Expected none of the lines\n\n    ${checks}\n\nto occur in ${stream}, but the following lines occurred:\n\n    ${hits}\n\n",
+                "Expected none of the lines\n\n    ${checks}\n\nto occur in ${stream}, but all of them occurred",
+                (ch, h) -> ch.containsAll(h) && h.containsAll(ch),
                 stream);
     }
 
@@ -98,6 +103,8 @@ public interface LineAssert extends Assert {
                     hits.add(line);
                 },
                 "Expected no content to occur in ${stream}, but the following occurred:\n\n    ${hits}\n\n",
+                "Expected no content to occur in ${stream}, but the following occurred:\n\n    ${hits}\n\n",
+                (ch, h) -> false,
                 stream);
     }
 
@@ -112,7 +119,7 @@ public interface LineAssert extends Assert {
      */
     static LineAssert hasLinesContaining(StreamExpectationsSpec.ProcessOutput stream, Collection<String> substrings) {
         return new Internal.LinesAssert<String, String>(
-                Collections.unmodifiableList(new ArrayList<>(substrings)),
+                Collections.unmodifiableSet(new LinkedHashSet<>(substrings)),
                 new LinkedHashSet<>(substrings),
                 (line, hits) -> {
                     for (Iterator<String> i = hits.iterator(); i.hasNext();) {
@@ -123,6 +130,8 @@ public interface LineAssert extends Assert {
                     }
                 },
                 "Expected lines containing\n\n    ${checks}\n\nto occur in ${stream}, but the following substrings did not occur:\n\n    ${hits}\n\n",
+                "Expected lines containing\n\n    ${checks}\n\nto occur in ${stream}, but none of them occurred",
+                (ch, h) -> ch.containsAll(h) && h.containsAll(ch),
                 stream);
     }
 
@@ -135,7 +144,7 @@ public interface LineAssert extends Assert {
      * @since             0.0.1
      */
     static LineAssert doesNotHaveLinesContaining(StreamExpectationsSpec.ProcessOutput stream, Collection<String> substrings) {
-        final List<String> checks = Collections.unmodifiableList(new ArrayList<>(substrings));
+        final Set<String> checks = Collections.unmodifiableSet(new LinkedHashSet<>(substrings));
         return new Internal.LinesAssert<String, String>(
                 checks,
                 new LinkedHashSet<>(),
@@ -143,11 +152,13 @@ public interface LineAssert extends Assert {
                     for (Iterator<String> i = checks.iterator(); i.hasNext();) {
                         String substr = i.next();
                         if (line.contains(substr)) {
-                            hits.add(line);
+                            hits.add(line.replace(substr, ">>" + substr + "<<"));
                         }
                     }
                 },
                 "Expected no lines containing\n\n    ${checks}\n\nto occur in ${stream}, but some of the substrings occur in lines\n\n    ${hits}\n\n",
+                "Expected no lines containing\n\n    ${checks}\n\nto occur in ${stream}, but some of the substrings occur in lines\n\n    ${hits}\n\n",
+                (ch, h) -> false,
                 stream);
     }
 
@@ -174,7 +185,9 @@ public interface LineAssert extends Assert {
                         }
                     }
                 },
-                "Expected lines containing using case insensitive comparison\n\n    ${checks}\n\nto occur in ${stream}, but the following substrings did not occur:\n\n    ${hits}\n\n",
+                "Expected lines containing\n\n    ${checks}\n\nusing case insensitive comparison to occur in ${stream}, but the following substrings did not occur:\n\n    ${hits}\n\n",
+                "Expected lines containing\n\n    ${checks}\n\nusing case insensitive comparison to occur in ${stream}, but none of them occurred",
+                (ch, h) -> ch.containsAll(h) && h.containsAll(ch),
                 stream);
     }
 
@@ -199,11 +212,13 @@ public interface LineAssert extends Assert {
                     for (Iterator<String> i = checks.iterator(); i.hasNext();) {
                         String substr = i.next();
                         if (line.contains(substr)) {
-                            hits.add(line);
+                            hits.add(line.replace(substr, ">>" + substr + "<<"));
                         }
                     }
                 },
-                "Expected no lines containing using case insensitive comparison\n\n    ${checks}\n\nto occur in ${stream}, but some of the substrings occur in lines\n\n    ${hits}\n\n",
+                "Expected no lines containing\n\n    ${checks}\n\nusing case insensitive comparison to occur in ${stream}, but some of the substrings occur in lines\n\n    ${hits}\n\n",
+                "Expected no lines containing\n\n    ${checks}\n\nusing case insensitive comparison to occur in ${stream}, but some of the substrings occur in lines\n\n    ${hits}\n\n",
+                (ch, h) -> false,
                 stream);
     }
 
@@ -340,6 +355,8 @@ public interface LineAssert extends Assert {
             private final Collection<H> hits;
             private final BiConsumer<String, Collection<H>> lineConsumer;
             private final String description;
+            private final String fullFailDescription;
+            private final BiFunction<Collection<C>, Collection<H>, Boolean> isFullFail;
             private final StreamExpectationsSpec.ProcessOutput stream;
 
             private LinesAssert(
@@ -347,11 +364,15 @@ public interface LineAssert extends Assert {
                     Collection<H> hits,
                     BiConsumer<String, Collection<H>> lineConsumer,
                     String description,
+                    String fullFailDescription,
+                    BiFunction<Collection<C>, Collection<H>, Boolean> isFullFail,
                     StreamExpectationsSpec.ProcessOutput stream) {
                 this.checks = Objects.requireNonNull(checks, "checks");
                 this.hits = Objects.requireNonNull(hits, "hits");
                 this.lineConsumer = Objects.requireNonNull(lineConsumer, "lineConsumer");
                 this.description = Objects.requireNonNull(description, "description");
+                this.fullFailDescription = Objects.requireNonNull(fullFailDescription, "fullFailDescription");
+                this.isFullFail = Objects.requireNonNull(isFullFail, "isFullFail");
                 this.stream = Objects.requireNonNull(stream, "stream");
             }
 
@@ -370,6 +391,8 @@ public interface LineAssert extends Assert {
                             }
                         },
                         "Expected lines matching\n\n    ${checks}\n\nto occur in ${stream}, but the following patterns did not match:\n\n    ${hits}\n\n",
+                        "Expected lines matching\n\n    ${checks}\n\nto occur in ${stream}, but none of them matched",
+                        (ch, h) -> ch.containsAll(h) && h.containsAll(ch),
                         stream);
             }
 
@@ -379,13 +402,22 @@ public interface LineAssert extends Assert {
                         new LinkedHashSet<>(),
                         (line, hits) -> {
                             for (Iterator<Pattern> i = checks.iterator(); i.hasNext();) {
-                                Pattern p = i.next();
-                                if (p.matcher(line).find()) {
-                                    hits.add(line);
+                                final Pattern p = i.next();
+                                final Matcher m = p.matcher(line);
+                                if (m.find()) {
+                                    StringBuffer sb = new StringBuffer();
+                                    m.appendReplacement(sb, ">>" + m.group(0) + "<<");
+                                    while (m.find()) {
+                                        m.appendReplacement(sb, ">>" + m.group(0) + "<<");
+                                    }
+                                    m.appendTail(sb);
+                                    hits.add(sb.toString());
                                 }
                             }
                         },
                         "Expected no lines matching\n\n    ${checks}\n\nto occur in ${stream}, but some of the patterns matched the lines\n\n    ${hits}\n\n",
+                        "Expected no lines matching\n\n    ${checks}\n\nto occur in ${stream}, but some of the patterns matched the lines\n\n    ${hits}\n\n",
+                        (ch, h) -> false,
                         stream);
             }
 
@@ -408,7 +440,13 @@ public interface LineAssert extends Assert {
             public FailureCollector evaluate(FailureCollector failureCollector) {
                 synchronized (hits) {
                     if (!hits.isEmpty()) {
-                        failureCollector.failure(Assert.Internal.formatMessage(description, this::eval));
+                        boolean ff = isFullFail.apply(checks, hits);
+                        failureCollector.failure(
+                                Assert.Internal.formatMessage(
+                                        ff
+                                                ? fullFailDescription
+                                                : description,
+                                        this::eval));
                     }
                 }
                 return failureCollector;
