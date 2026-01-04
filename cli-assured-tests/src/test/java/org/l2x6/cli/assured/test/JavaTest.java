@@ -53,11 +53,7 @@ public class JavaTest {
                         + "\n"
                         + "    Hello Joe\n"
                         + "\n"
-                        + "to occur in stderr in any order, but lines\n"
-                        + "\n"
-                        + "    Hello Joe\n"
-                        + "\n"
-                        + "did not occur");
+                        + "to occur in stderr in any order, but none of them occurred");
 
     }
 
@@ -117,11 +113,7 @@ public class JavaTest {
                         + "\n"
                         + "    Hello stderr Joe\n"
                         + "\n"
-                        + "to occur in stdout in any order, but lines\n"
-                        + "\n"
-                        + "    Hello stderr Joe\n"
-                        + "\n"
-                        + "did not occur\n\n"
+                        + "to occur in stdout in any order, but none of them occurred\n\n"
                         + "Failure 2/2: Expected no content to occur in stderr, but the following occurred:\n"
                         + "\n"
                         + "    Hello stderr Joe\n"
@@ -224,18 +216,13 @@ public class JavaTest {
                         + "\n"
                         + "    lo J\n"
                         + "\n"
-                        + "to occur in stderr, but the following substrings did not occur:\n"
+                        + "to occur in stderr, but none of them occurred\n"
                         + "\n"
-                        + "    lo J\n"
-                        + "\n"
-                        + "Failure 2/2: Expected lines containing using case insensitive comparison\n"
+                        + "Failure 2/2: Expected lines containing\n"
                         + "\n"
                         + "    joe\n"
                         + "\n"
-                        + "to occur in stderr, but the following substrings did not occur:\n"
-                        + "\n"
-                        + "    joe\n"
-                        + "\n");
+                        + "using case insensitive comparison to occur in stderr, but none of them occurred");
 
     }
 
@@ -263,10 +250,7 @@ public class JavaTest {
                         + "\n"
                         + "    lo J.e\n"
                         + "\n"
-                        + "to occur in stderr, but the following patterns did not match:\n"
-                        + "\n"
-                        + "    lo J.e\n"
-                        + "\n");
+                        + "to occur in stderr, but none of them matched");
     }
 
     @Test
@@ -297,10 +281,7 @@ public class JavaTest {
                         + "\n"
                         + "    Hello Joe\n"
                         + "\n"
-                        + "to occur in stdout, but the following lines occurred:\n"
-                        + "\n"
-                        + "    Hello Joe\n"
-                        + "\n");
+                        + "to occur in stdout, but all of them occurred");
         Assertions
                 .assertThatThrownBy(
                         runErr("helloErr", "Joe")
@@ -312,10 +293,7 @@ public class JavaTest {
                         + "\n"
                         + "    Hello stderr Joe\n"
                         + "\n"
-                        + "to occur in stderr, but the following lines occurred:\n"
-                        + "\n"
-                        + "    Hello stderr Joe\n"
-                        + "\n");
+                        + "to occur in stderr, but all of them occurred");
 
     }
 
@@ -344,7 +322,7 @@ public class JavaTest {
                         + "\n"
                         + "to occur in stdout, but some of the substrings occur in lines\n"
                         + "\n"
-                        + "    Hello Joe\n"
+                        + "    Hello >>Joe<<\n"
                         + "\n");
 
         Assertions
@@ -360,7 +338,7 @@ public class JavaTest {
                         + "\n"
                         + "to occur in stderr, but some of the substrings occur in lines\n"
                         + "\n"
-                        + "    Hello stderr Joe\n"
+                        + "    Hello stderr >>Joe<<\n"
                         + "\n");
     }
 
@@ -388,7 +366,7 @@ public class JavaTest {
                         + "\n"
                         + "to occur in stdout, but some of the patterns matched the lines\n"
                         + "\n"
-                        + "    Hello Joe\n"
+                        + "    Hel>>lo Joe<<\n"
                         + "\n");
 
         Assertions
@@ -404,7 +382,7 @@ public class JavaTest {
                         + "\n"
                         + "to occur in stderr, but some of the patterns matched the lines\n"
                         + "\n"
-                        + "    Hello stderr Joe\n"
+                        + "    Hel>>lo stderr Joe<<\n"
                         + "\n");
 
     }

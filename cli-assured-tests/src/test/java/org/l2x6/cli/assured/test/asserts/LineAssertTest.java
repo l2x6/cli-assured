@@ -32,11 +32,19 @@ public class LineAssertTest {
 
         Assertions.assertThatThrownBy(LineAssert.hasLines(ProcessOutput.stdout, Arrays.asList("foo", "bar"))
                 .line("maz")
+                .line("bar")
+                .evaluate(new Assert.FailureCollector("test-command"))::assertSatisfied)
+                .isInstanceOf(AssertionError.class)
+                .message().endsWith(
+                        "Failure 1/1: Expected lines\n\n    foo\n    bar\n\nto occur in stdout in any order, but lines\n\n    foo\n\ndid not occur");
+
+        Assertions.assertThatThrownBy(LineAssert.hasLines(ProcessOutput.stdout, Arrays.asList("foo", "bar"))
+                .line("maz")
                 .line("baz")
                 .evaluate(new Assert.FailureCollector("test-command"))::assertSatisfied)
                 .isInstanceOf(AssertionError.class)
                 .message().endsWith(
-                        "Failure 1/1: Expected lines\n\n    foo\n    bar\n\nto occur in stdout in any order, but lines\n\n    foo\n    bar\n\ndid not occur");
+                        "Failure 1/1: Expected lines\n\n    foo\n    bar\n\nto occur in stdout in any order, but none of them occurred");
 
     }
 
@@ -49,13 +57,21 @@ public class LineAssertTest {
                 .evaluate(new Assert.FailureCollector("test-command"))
                 .assertSatisfied();
 
+        Assertions.assertThatThrownBy(LineAssert.doesNotHaveLines(ProcessOutput.stdout, Arrays.asList("foo", "bar"))
+                .line("maz")
+                .line("foo")
+                .evaluate(new Assert.FailureCollector("test-command"))::assertSatisfied)
+                .isInstanceOf(AssertionError.class)
+                .message().endsWith(
+                        "Failure 1/1: Expected none of the lines\n\n    foo\n    bar\n\nto occur in stdout, but the following lines occurred:\n\n    foo\n\n");
+
         Assertions.assertThatThrownBy(LineAssert.doesNotHaveLines(ProcessOutput.stdout, Arrays.asList("foo"))
                 .line("maz")
                 .line("foo")
                 .evaluate(new Assert.FailureCollector("test-command"))::assertSatisfied)
                 .isInstanceOf(AssertionError.class)
                 .message().endsWith(
-                        "Failure 1/1: Expected none of the lines\n\n    foo\n\nto occur in stdout, but the following lines occurred:\n\n    foo\n\n");
+                        "Failure 1/1: Expected none of the lines\n\n    foo\n\nto occur in stdout, but all of them occurred");
 
     }
 
@@ -71,10 +87,19 @@ public class LineAssertTest {
         Assertions.assertThatThrownBy(LineAssert.hasLinesContaining(ProcessOutput.stdout, Arrays.asList("foo", "bar"))
                 .line("ma")
                 .line("az")
+                .line("bar")
                 .evaluate(new Assert.FailureCollector("test-command"))::assertSatisfied)
                 .isInstanceOf(AssertionError.class)
                 .message().endsWith(
-                        "Failure 1/1: Expected lines containing\n\n    foo\n    bar\n\nto occur in stdout, but the following substrings did not occur:\n\n    foo\n    bar\n\n");
+                        "Failure 1/1: Expected lines containing\n\n    foo\n    bar\n\nto occur in stdout, but the following substrings did not occur:\n\n    foo\n\n");
+
+        Assertions.assertThatThrownBy(LineAssert.hasLinesContaining(ProcessOutput.stdout, Arrays.asList("foo", "bar"))
+                .line("ma")
+                .line("az")
+                .evaluate(new Assert.FailureCollector("test-command"))::assertSatisfied)
+                .isInstanceOf(AssertionError.class)
+                .message().endsWith(
+                        "Failure 1/1: Expected lines containing\n\n    foo\n    bar\n\nto occur in stdout, but none of them occurred");
 
     }
 
@@ -93,7 +118,7 @@ public class LineAssertTest {
                 .evaluate(new Assert.FailureCollector("test-command"))::assertSatisfied)
                 .isInstanceOf(AssertionError.class)
                 .message().endsWith(
-                        "Failure 1/1: Expected no lines containing\n\n    oo\n\nto occur in stdout, but some of the substrings occur in lines\n\n    foo\n\n");
+                        "Failure 1/1: Expected no lines containing\n\n    oo\n\nto occur in stdout, but some of the substrings occur in lines\n\n    f>>oo<<\n\n");
 
     }
 
@@ -127,11 +152,21 @@ public class LineAssertTest {
                 .assertThatThrownBy(LineAssert
                         .hasLinesContainingCaseInsensitive(ProcessOutput.stdout, Arrays.asList("foo", "bar"), Locale.US)
                         .line("ma")
+                        .line("BAR")
+                        .evaluate(new Assert.FailureCollector("test-command"))::assertSatisfied)
+                .isInstanceOf(AssertionError.class)
+                .message().endsWith(
+                        "Failure 1/1: Expected lines containing\n\n    foo\n    bar\n\nusing case insensitive comparison to occur in stdout, but the following substrings did not occur:\n\n    foo\n\n");
+
+        Assertions
+                .assertThatThrownBy(LineAssert
+                        .hasLinesContainingCaseInsensitive(ProcessOutput.stdout, Arrays.asList("foo", "bar"), Locale.US)
+                        .line("ma")
                         .line("az")
                         .evaluate(new Assert.FailureCollector("test-command"))::assertSatisfied)
                 .isInstanceOf(AssertionError.class)
                 .message().endsWith(
-                        "Failure 1/1: Expected lines containing using case insensitive comparison\n\n    foo\n    bar\n\nto occur in stdout, but the following substrings did not occur:\n\n    foo\n    bar\n\n");
+                        "Failure 1/1: Expected lines containing\n\n    foo\n    bar\n\nusing case insensitive comparison to occur in stdout, but none of them occurred");
 
     }
 
@@ -152,8 +187,7 @@ public class LineAssertTest {
                         .evaluate(new Assert.FailureCollector("test-command"))::assertSatisfied)
                 .isInstanceOf(AssertionError.class)
                 .message().endsWith(
-                        "Failure 1/1: Expected no lines containing using case insensitive comparison\n\n    oo\n\nto occur in stdout, but some of the substrings occur in lines\n\n    foo\n\n");
-
+                        "Failure 1/1: Expected no lines containing\n\n    oo\n\nusing case insensitive comparison to occur in stdout, but some of the substrings occur in lines\n\n    f>>oo<<\n\n");
     }
 
     @Test
@@ -170,12 +204,24 @@ public class LineAssertTest {
                         .hasLinesMatchingPatterns(ProcessOutput.stdout,
                                 Arrays.asList(Pattern.compile("o+", Pattern.CASE_INSENSITIVE),
                                         Pattern.compile("b.*", Pattern.CASE_INSENSITIVE)))
+                        .line("foo")
+                        .line("az")
+                        .evaluate(new Assert.FailureCollector("test-command"))::assertSatisfied)
+                .isInstanceOf(AssertionError.class)
+                .message().endsWith(
+                        "Failure 1/1: Expected lines matching\n\n    o+\n    b.*\n\nto occur in stdout, but the following patterns did not match:\n\n    b.*\n\n");
+
+        Assertions
+                .assertThatThrownBy(LineAssert
+                        .hasLinesMatchingPatterns(ProcessOutput.stdout,
+                                Arrays.asList(Pattern.compile("o+", Pattern.CASE_INSENSITIVE),
+                                        Pattern.compile("b.*", Pattern.CASE_INSENSITIVE)))
                         .line("ma")
                         .line("az")
                         .evaluate(new Assert.FailureCollector("test-command"))::assertSatisfied)
                 .isInstanceOf(AssertionError.class)
                 .message().endsWith(
-                        "Failure 1/1: Expected lines matching\n\n    o+\n    b.*\n\nto occur in stdout, but the following patterns did not match:\n\n    o+\n    b.*\n\n");
+                        "Failure 1/1: Expected lines matching\n\n    o+\n    b.*\n\nto occur in stdout, but none of them matched");
 
     }
 
@@ -191,12 +237,22 @@ public class LineAssertTest {
         Assertions.assertThatThrownBy(
                 LineAssert.hasLinesMatching(ProcessOutput.stdout,
                         Arrays.asList("o+", "b.*"))
+                        .line("foo")
+                        .line("az")
+                        .evaluate(new Assert.FailureCollector("test-command"))::assertSatisfied)
+                .isInstanceOf(AssertionError.class)
+                .message().endsWith(
+                        "Failure 1/1: Expected lines matching\n\n    o+\n    b.*\n\nto occur in stdout, but the following patterns did not match:\n\n    b.*\n\n");
+
+        Assertions.assertThatThrownBy(
+                LineAssert.hasLinesMatching(ProcessOutput.stdout,
+                        Arrays.asList("o+", "b.*"))
                         .line("ma")
                         .line("az")
                         .evaluate(new Assert.FailureCollector("test-command"))::assertSatisfied)
                 .isInstanceOf(AssertionError.class)
                 .message().endsWith(
-                        "Failure 1/1: Expected lines matching\n\n    o+\n    b.*\n\nto occur in stdout, but the following patterns did not match:\n\n    o+\n    b.*\n\n");
+                        "Failure 1/1: Expected lines matching\n\n    o+\n    b.*\n\nto occur in stdout, but none of them matched");
 
     }
 
@@ -217,7 +273,7 @@ public class LineAssertTest {
                                 .evaluate(new Assert.FailureCollector("test-command"))::assertSatisfied)
                 .isInstanceOf(AssertionError.class)
                 .message().endsWith(
-                        "Failure 1/1: Expected no lines matching\n\n    o+\n\nto occur in stdout, but some of the patterns matched the lines\n\n    foo\n\n");
+                        "Failure 1/1: Expected no lines matching\n\n    o+\n\nto occur in stdout, but some of the patterns matched the lines\n\n    f>>oo<<\n\n");
     }
 
     @Test
@@ -235,7 +291,7 @@ public class LineAssertTest {
                 .evaluate(new Assert.FailureCollector("test-command"))::assertSatisfied)
                 .isInstanceOf(AssertionError.class)
                 .message().endsWith(
-                        "Failure 1/1: Expected no lines matching\n\n    o+\n\nto occur in stdout, but some of the patterns matched the lines\n\n    foo\n\n");
+                        "Failure 1/1: Expected no lines matching\n\n    o+\n\nto occur in stdout, but some of the patterns matched the lines\n\n    f>>oo<<\n\n");
     }
 
     @Test
