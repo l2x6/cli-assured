@@ -40,9 +40,12 @@ abstract class OutputConsumer implements Assert {
     }
 
     @Override
+    @ExcludeFromJacocoGeneratedReport
     public FailureCollector evaluate(FailureCollector failureCollector) {
         synchronized (exceptions) {
-            exceptions.forEach(failureCollector::exception);
+            for (Throwable e : exceptions) {
+                failureCollector.exception(stream, e);
+            }
         }
         return failureCollector;
     }

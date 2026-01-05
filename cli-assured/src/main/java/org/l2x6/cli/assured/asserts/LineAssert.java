@@ -7,6 +7,7 @@ package org.l2x6.cli.assured.asserts;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
@@ -99,12 +100,12 @@ public interface LineAssert extends Assert {
     static LineAssert doesNotHaveAnyLines(StreamExpectationsSpec.ProcessOutput stream) {
         return new Internal.LinesAssert<String, String>(
                 Collections.emptyList(),
-                new ArrayList<>(),
+                new HashSet<>(),
                 (line, hits) -> {
-                    hits.add(line);
+                    hits.add("");
                 },
-                "Expected no content to occur in ${stream}, but the following occurred:\n\n    ${hits}\n\n",
-                "Expected no content to occur in ${stream}, but the following occurred:\n\n    ${hits}\n\n",
+                "Expected no content to occur in ${stream}",
+                "Expected no content to occur in ${stream}",
                 (ch, h) -> false,
                 stream);
     }
@@ -393,7 +394,7 @@ public interface LineAssert extends Assert {
                         },
                         "Expected lines matching\n\n    ${checks}\n\nto occur in ${stream}, but the following patterns did not match:\n\n    ${hits}\n\n",
                         "Expected lines matching\n\n    ${checks}\n\nto occur in ${stream}, but none of them matched",
-                        (ch, h) -> ch.containsAll(h) && h.containsAll(ch),
+                        (ch, h) -> LinesAssert.haveSameElements(ch, h),
                         stream);
             }
 
@@ -443,6 +444,7 @@ public interface LineAssert extends Assert {
                     if (!hits.isEmpty()) {
                         boolean ff = isFullFail.apply(checks, hits);
                         failureCollector.failure(
+                                stream,
                                 Assert.Internal.formatMessage(
                                         ff
                                                 ? fullFailDescription
@@ -477,7 +479,7 @@ public interface LineAssert extends Assert {
             }
 
             @ExcludeFromJacocoGeneratedReport
-            static boolean haveSameElements(Collection<String> ch, Collection<String> h) {
+            static <T> boolean haveSameElements(Collection<T> ch, Collection<T> h) {
                 return ch.containsAll(h) && h.containsAll(ch);
             }
 
@@ -499,7 +501,7 @@ public interface LineAssert extends Assert {
             @Override
             public FailureCollector evaluate(FailureCollector failureCollector) {
                 if (!expected.test(actualCount.get())) {
-                    failureCollector.failure(Assert.Internal.formatMessage(description, this::eval));
+                    failureCollector.failure(stream, Assert.Internal.formatMessage(description, this::eval));
                 }
                 return failureCollector;
             }

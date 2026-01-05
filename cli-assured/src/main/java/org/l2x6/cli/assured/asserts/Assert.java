@@ -14,14 +14,19 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Objects;
 import java.util.StringJoiner;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+import org.l2x6.cli.assured.StreamExpectationsSpec.ProcessOutput;
 
 /**
  * An abstract assertion.
@@ -61,70 +66,94 @@ public interface Assert {
      */
     static class FailureCollector {
         private final String command;
-        private final List<String> failures = new ArrayList<>();
-        private final List<Throwable> exceptions = new ArrayList<>();
+
+        private final Map<ProcessOutput, StreamFailureCollector> streamCollectors;
 
         public FailureCollector(String command) {
             this.command = Objects.requireNonNull(command, "command");
+
+            Map<ProcessOutput, StreamFailureCollector> m = new LinkedHashMap<>();
+            m.put(null, new StreamFailureCollector());
+            m.put(ProcessOutput.stdout, new StreamFailureCollector());
+            m.put(ProcessOutput.stderr, new StreamFailureCollector());
+            this.streamCollectors = Collections.unmodifiableMap(m);
         }
 
         /**
          * Add the specified failure to this {@link FailureCollector}.
          *
+         * @param  stream      the {@link ProcessOutput} the failure is related to; can be {@code null}
          * @param  description the description of the failure to add to this {@link FailureCollector}
          * @return             this {@link FailureCollector}
          * @since              0.0.1
          */
-        public FailureCollector failure(String description) {
-            failures.add(description);
+        public FailureCollector failure(ProcessOutput stream, String description) {
+            streamCollectors.get(stream).failures.add(description);
             return this;
         }
 
         /**
          * Add the specified {@code exception} to this {@link FailureCollector}.
          *
+         * @param  stream    the {@link ProcessOutput} the exception is related to; can be {@code null}
          * @param  exception the exception to add to this {@link FailureCollector}
          * @return           this {@link FailureCollector}
          * @since            0.0.1
          */
-        public FailureCollector exception(Throwable exception) {
-            exceptions.add(exception);
+        public FailureCollector exception(ProcessOutput stream, Throwable exception) {
+            streamCollectors.get(stream).exceptions.add(exception);
             return this;
+        }
+
+        /**
+         * Add the {@code capture} report to this {@link FailureCollector}.
+         *
+         * @param  stream  the {@link ProcessOutput} the capture is related to; can be {@code null}
+         * @param  capture the capture to add to this {@link FailureCollector}
+         * @return         this {@link FailureCollector}
+         * @since          0.0.1
+         */
+        public FailureCollector capture(ProcessOutput stream, Consumer<StringBuilder> capture) {
+            streamCollectors.get(stream).capture = capture;
+            return this;
+        }
+
+        /**
+         * @param  stream the {@link ProcessOutput} for which the sum should be computed
+         * @return        the sum of the failures and errors counts
+         */
+        public int sum(ProcessOutput stream) {
+            return streamCollectors.get(stream).sum();
         }
 
         /**
          * @throws AssertionError if any failures or exceptions were added to this {@link FailureCollector}
          */
         public void assertSatisfied() {
-            if (!failures.isEmpty() || !exceptions.isEmpty()) {
+            int exceptionsCount = 0;
+            int failuresCount = 0;
+            for (StreamFailureCollector c : streamCollectors.values()) {
+                exceptionsCount += c.exceptions.size();
+                failuresCount += c.failures.size();
+            }
+            if (exceptionsCount + failuresCount > 0) {
                 final StringJoiner exceptionsAndFailures = new StringJoiner(" and ");
-                if (!exceptions.isEmpty()) {
-                    exceptionsAndFailures.add("" + exceptions.size() + " exceptions");
+                if (exceptionsCount > 0) {
+                    exceptionsAndFailures.add("" + exceptionsCount + " exceptions");
                 }
-                if (!failures.isEmpty()) {
-                    exceptionsAndFailures.add("" + failures.size() + " assertion failures");
+                if (failuresCount > 0) {
+                    exceptionsAndFailures.add("" + failuresCount + " assertion failures");
                 }
                 StringBuilder message = new StringBuilder()
                         .append(exceptionsAndFailures.toString())
                         .append(" occurred while executing\n\n    ")
                         .append(command);
-                if (!exceptions.isEmpty()) {
-                    int i = 1;
-                    AppendableWriter w = new AppendableWriter(message);
-                    for (Throwable e : exceptions) {
-                        assertTwoTrailingNewLines(message);
-                        message.append("Exception ").append(i++).append('/').append(exceptions.size()).append(": ");
-                        e.printStackTrace(w);
-                    }
+                final AtomicInteger exceptionsIndex = new AtomicInteger(1);
+                final AtomicInteger failuresIndex = new AtomicInteger(1);
+                for (StreamFailureCollector c : streamCollectors.values()) {
+                    c.append(message, exceptionsIndex, exceptionsCount, failuresIndex, failuresCount);
                 }
-                if (!failures.isEmpty()) {
-                    int i = 1;
-                    for (String f : failures) {
-                        assertTwoTrailingNewLines(message);
-                        message.append("Failure ").append(i++).append('/').append(failures.size()).append(": ")
-                                .append(f);
-                    }
-                }
+
                 throw new AssertionError(message);
             }
         }
@@ -156,6 +185,50 @@ public interface Assert {
                 message.append("\n\n");
                 return;
             }
+
+        }
+
+        /**
+         * Failures, exceptions and the capture for a {@link ProcessOutput}.
+         */
+        static class StreamFailureCollector {
+            private final List<String> failures = new ArrayList<>();
+            private final List<Throwable> exceptions = new ArrayList<>();
+            private Consumer<StringBuilder> capture;
+
+            /**
+             * @return the sum of the failures and errors counts
+             */
+            public int sum() {
+                return failures.size() + exceptions.size();
+            }
+
+            void append(StringBuilder message,
+                    AtomicInteger exceptionsIndex, int exceptionsCount,
+                    AtomicInteger failuresIndex, int failuresCount) {
+                if (!exceptions.isEmpty()) {
+                    AppendableWriter w = new AppendableWriter(message);
+                    for (Throwable e : exceptions) {
+                        assertTwoTrailingNewLines(message);
+                        message.append("Exception ").append(exceptionsIndex.getAndIncrement()).append('/')
+                                .append(exceptionsCount).append(": ");
+                        e.printStackTrace(w);
+                    }
+                }
+                if (!failures.isEmpty()) {
+                    for (String f : failures) {
+                        assertTwoTrailingNewLines(message);
+                        message.append("Failure ").append(failuresIndex.getAndIncrement()).append('/').append(failuresCount)
+                                .append(": ")
+                                .append(f);
+                    }
+                }
+                if (capture != null) {
+                    assertTwoTrailingNewLines(message);
+                    capture.accept(message);
+                }
+            }
+
         }
 
         static class AppendableWriter extends PrintWriter {

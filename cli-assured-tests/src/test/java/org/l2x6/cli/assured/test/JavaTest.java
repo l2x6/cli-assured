@@ -53,7 +53,9 @@ public class JavaTest {
                         + "\n"
                         + "    Hello Joe\n"
                         + "\n"
-                        + "to occur in stderr in any order, but none of them occurred");
+                        + "to occur in stderr in any order, but none of them occurred\n"
+                        + "\n"
+                        + "stderr: <no output>");
 
     }
 
@@ -97,10 +99,11 @@ public class JavaTest {
                                 .start()
                                 .awaitTermination()::assertSuccess)
                 .isInstanceOf(AssertionError.class)
-                .message().endsWith("Failure 1/1: Expected no content to occur in stderr, but the following occurred:\n"
+                .message().endsWith("Failure 1/1: Expected no content to occur in stderr\n"
                         + "\n"
-                        + "    Hello stderr Joe\n"
-                        + "\n");
+                        + "stderr:\n"
+                        + "\n"
+                        + "    Hello stderr Joe");
 
         Assertions
                 .assertThatThrownBy(
@@ -113,11 +116,15 @@ public class JavaTest {
                         + "\n"
                         + "    Hello stderr Joe\n"
                         + "\n"
-                        + "to occur in stdout in any order, but none of them occurred\n\n"
-                        + "Failure 2/2: Expected no content to occur in stderr, but the following occurred:\n"
+                        + "to occur in stdout in any order, but none of them occurred\n"
                         + "\n"
-                        + "    Hello stderr Joe\n"
-                        + "\n");
+                        + "stdout: <no output>\n"
+                        + "\n"
+                        + "Failure 2/2: Expected no content to occur in stderr\n"
+                        + "\n"
+                        + "stderr:\n"
+                        + "\n"
+                        + "    Hello stderr Joe");
 
     }
 
@@ -222,7 +229,9 @@ public class JavaTest {
                         + "\n"
                         + "    joe\n"
                         + "\n"
-                        + "using case insensitive comparison to occur in stderr, but none of them occurred");
+                        + "using case insensitive comparison to occur in stderr, but none of them occurred\n"
+                        + "\n"
+                        + "stderr: <no output>");
 
     }
 
@@ -250,7 +259,9 @@ public class JavaTest {
                         + "\n"
                         + "    lo J.e\n"
                         + "\n"
-                        + "to occur in stderr, but none of them matched");
+                        + "to occur in stderr, but none of them matched\n"
+                        + "\n"
+                        + "stderr: <no output>");
     }
 
     @Test
@@ -281,7 +292,12 @@ public class JavaTest {
                         + "\n"
                         + "    Hello Joe\n"
                         + "\n"
-                        + "to occur in stdout, but all of them occurred");
+                        + "to occur in stdout, but all of them occurred\n"
+                        + "\n"
+                        + "stdout:\n"
+                        + "\n"
+                        + "    Hello Joe");
+
         Assertions
                 .assertThatThrownBy(
                         runErr("helloErr", "Joe")
@@ -293,7 +309,11 @@ public class JavaTest {
                         + "\n"
                         + "    Hello stderr Joe\n"
                         + "\n"
-                        + "to occur in stderr, but all of them occurred");
+                        + "to occur in stderr, but all of them occurred\n"
+                        + "\n"
+                        + "stderr:\n"
+                        + "\n"
+                        + "    Hello stderr Joe");
 
     }
 
@@ -323,7 +343,10 @@ public class JavaTest {
                         + "to occur in stdout, but some of the substrings occur in lines\n"
                         + "\n"
                         + "    Hello >>Joe<<\n"
-                        + "\n");
+                        + "\n"
+                        + "stdout:\n"
+                        + "\n"
+                        + "    Hello Joe");
 
         Assertions
                 .assertThatThrownBy(
@@ -339,7 +362,10 @@ public class JavaTest {
                         + "to occur in stderr, but some of the substrings occur in lines\n"
                         + "\n"
                         + "    Hello stderr >>Joe<<\n"
-                        + "\n");
+                        + "\n"
+                        + "stderr:\n"
+                        + "\n"
+                        + "    Hello stderr Joe");
     }
 
     @Test
@@ -367,7 +393,10 @@ public class JavaTest {
                         + "to occur in stdout, but some of the patterns matched the lines\n"
                         + "\n"
                         + "    Hel>>lo Joe<<\n"
-                        + "\n");
+                        + "\n"
+                        + "stdout:\n"
+                        + "\n"
+                        + "    Hello Joe");
 
         Assertions
                 .assertThatThrownBy(
@@ -383,7 +412,10 @@ public class JavaTest {
                         + "to occur in stderr, but some of the patterns matched the lines\n"
                         + "\n"
                         + "    Hel>>lo stderr Joe<<\n"
-                        + "\n");
+                        + "\n"
+                        + "stderr:\n"
+                        + "\n"
+                        + "    Hello stderr Joe");
 
     }
 
@@ -406,7 +438,9 @@ public class JavaTest {
                                 .start()
                                 .awaitTermination()::assertSuccess)
                 .isInstanceOf(AssertionError.class)
-                .message().endsWith("Failure 1/1: Expected number of lines > 0 && < 2 in stderr but found 0 lines");
+                .message().endsWith("Failure 1/1: Expected number of lines > 0 && < 2 in stderr but found 0 lines\n"
+                        + "\n"
+                        + "stderr: <no output>");
     }
 
     @Test
@@ -453,8 +487,9 @@ public class JavaTest {
         Assertions.assertThat(proc.toString())
                 .isEqualTo("cd " + Paths.get(".").toAbsolutePath().normalize()
                         + " && " + javaExecutable() + " -cp " + testAppJar()
-                        + " org.l2x6.cli.assured.test.app.TestApp hello Joe > "+ Paths.get("target/JavaTest." + uuid
-                        + "-stdout.txt") +" 2> "+ Paths.get("target/JavaTest." + uuid + "-stderr.txt"));
+                        + " org.l2x6.cli.assured.test.app.TestApp hello Joe > " + Paths.get("target/JavaTest." + uuid
+                                + "-stdout.txt")
+                        + " 2> " + Paths.get("target/JavaTest." + uuid + "-stderr.txt"));
         proc.awaitTermination()
                 .assertSuccess();
         Assertions.assertThat(out).content(StandardCharsets.UTF_8).matches("^Hello Joe\r?\n$");
@@ -600,6 +635,64 @@ public class JavaTest {
                 .awaitTermination()
                 .assertSuccess();
         Assertions.assertThat(lines).hasSize(1).contains("Hello Joe");
+
+    }
+
+    @Test
+    void capture() throws IOException {
+        StringBuilder expected = new StringBuilder("Failure 1/1: Expected lines\n"
+                + "\n"
+                + "    Foo\n"
+                + "\n"
+                + "to occur in stdout in any order, but none of them occurred\n"
+                + "\n"
+                + "stdout:\n");
+        for (int i = 0; i < 35; i++) {
+            expected.append("\n    Line ").append(i);
+        }
+
+        Assertions.assertThatThrownBy(run("outputLines", "35")
+                .captureAll()
+                .hasLines("Foo")
+                .start()
+                .awaitTermination()::assertSuccess).isInstanceOf(AssertionError.class)
+                .hasMessageEndingWith(expected.toString());
+
+        Assertions.assertThatThrownBy(run("outputLines", "35")
+                .capture(3, 3)
+                .hasLines("Foo")
+                .start()
+                .awaitTermination()::assertSuccess).isInstanceOf(AssertionError.class)
+                .hasMessageEndingWith("Failure 1/1: Expected lines\n"
+                        + "\n"
+                        + "    Foo\n"
+                        + "\n"
+                        + "to occur in stdout in any order, but none of them occurred\n"
+                        + "\n"
+                        + "stdout:\n"
+                        + "\n"
+                        + "    Line 0\n"
+                        + "    Line 1\n"
+                        + "    Line 2\n"
+                        + "    ...\n"
+                        + "    [29 lines omitted; set stdout().capture(maxHeadLines, maxTailLines) or stdout().captureAll() to capure more lines]\n"
+                        + "    ...\n"
+                        + "    Line 32\n"
+                        + "    Line 33\n"
+                        + "    Line 34");
+
+        Assertions.assertThatThrownBy(run("outputLines", "35")
+                .capture(0, 0)
+                .hasLines("Foo")
+                .start()
+                .awaitTermination()::assertSuccess).isInstanceOf(AssertionError.class)
+                .hasMessageEndingWith("Failure 1/1: Expected lines\n"
+                        + "\n"
+                        + "    Foo\n"
+                        + "\n"
+                        + "to occur in stdout in any order, but none of them occurred\n"
+                        + "\n"
+                        + "stdout: <no lines captured>");
 
     }
 

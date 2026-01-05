@@ -135,7 +135,7 @@ public class LineAssertTest {
                 .evaluate(new Assert.FailureCollector("test-command"))::assertSatisfied)
                 .isInstanceOf(AssertionError.class)
                 .message().endsWith(
-                        "Failure 1/1: Expected no content to occur in stderr, but the following occurred:\n\n    maz\n    foo\n\n");
+                        "Failure 1/1: Expected no content to occur in stderr");
 
     }
 

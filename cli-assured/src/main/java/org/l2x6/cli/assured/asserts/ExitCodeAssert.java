@@ -100,7 +100,7 @@ public class ExitCodeAssert implements Assert {
     @Override
     public FailureCollector evaluate(FailureCollector failureCollector) {
         if (!expected.test(actualExitCode)) {
-            failureCollector.failure(Assert.Internal.formatMessage(description, this::eval));
+            failureCollector.failure(null, Assert.Internal.formatMessage(description, this::eval));
         }
         return failureCollector;
     }

@@ -8,6 +8,7 @@ import java.io.IOException;
 import java.util.Collections;
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.Test;
+import org.l2x6.cli.assured.StreamExpectationsSpec.ProcessOutput;
 import org.l2x6.cli.assured.asserts.Assert;
 import org.l2x6.cli.assured.asserts.Assert.FailureCollector;
 import org.l2x6.cli.assured.asserts.LineAssert;
@@ -17,13 +18,14 @@ public class AssertTest {
 
     @Test
     void collector() {
+        final ProcessOutput stream = ProcessOutput.stdout;
         Assertions.assertThatThrownBy(
                 new Assert.FailureCollector("test-command")
-                        .failure("f1")
-                        .failure("f2")
-                        .exception(exception(1))
-                        .exception(exception(2))
-                        .exception(exception(3))::assertSatisfied)
+                        .failure(stream, "f1")
+                        .failure(stream, "f2")
+                        .exception(stream, exception(1))
+                        .exception(stream, exception(2))
+                        .exception(stream, exception(3))::assertSatisfied)
                 .isInstanceOf(AssertionError.class)
                 .hasMessage("3 exceptions and 2 assertion failures occurred while executing\n"
                         + "\n"
@@ -53,7 +55,7 @@ public class AssertTest {
                 JavaTest.command("hello", "Joe")
                         .then()
                         .stdout()
-                        .linesSatisfy(new ThrowingLineAssert())
+                        .linesSatisfy(new ThrowingLineAssert(ProcessOutput.stdout))
                         .execute()::assertSuccess)
                 .isInstanceOf(AssertionError.class)
                 .message()
@@ -63,12 +65,17 @@ public class AssertTest {
                         + "\n"
                         + "Exception 1/1: java.lang.RuntimeException: Hello 1\n"
                         + "\tat Hello1.hello1(Hello1.java:1)\n"
-                        + "\tat Hello1.hola(Hello1.java:42)\n\\E");
+                        + "\tat Hello1.hola(Hello1.java:42)\n"
+                        + "\n"
+                        + "stdout:\n"
+                        + "\n"
+                        + "    Hello Joe\\E");
+
         Assertions.assertThatThrownBy(
                 JavaTest.command("hello", "Joe")
                         .then()
                         .stdout()
-                        .linesSatisfy(Collections.singletonList(new ThrowingLineAssert()))
+                        .linesSatisfy(Collections.singletonList(new ThrowingLineAssert(ProcessOutput.stdout)))
                         .execute()::assertSuccess)
                 .isInstanceOf(AssertionError.class)
                 .message()
@@ -78,14 +85,24 @@ public class AssertTest {
                         + "\n"
                         + "Exception 1/1: java.lang.RuntimeException: Hello 1\n"
                         + "\tat Hello1.hello1(Hello1.java:1)\n"
-                        + "\tat Hello1.hola(Hello1.java:42)\n\\E");
+                        + "\tat Hello1.hola(Hello1.java:42)\n"
+                        + "\n"
+                        + "stdout:\n"
+                        + "\n"
+                        + "    Hello Joe\\E");
     }
 
     static class ThrowingLineAssert implements LineAssert {
 
+        private final ProcessOutput stream;
+
+        public ThrowingLineAssert(ProcessOutput stream) {
+            this.stream = stream;
+        }
+
         @Override
         public FailureCollector evaluate(FailureCollector failureCollector) {
-            failureCollector.exception(org.l2x6.cli.assured.test.asserts.AssertTest.exception(1));
+            failureCollector.exception(stream, org.l2x6.cli.assured.test.asserts.AssertTest.exception(1));
             return failureCollector;
         }
 
