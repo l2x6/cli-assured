@@ -14,6 +14,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -52,6 +53,7 @@ public class StreamExpectationsSpec {
     private final ByteCountAssert byteCountAssert;
     private final Charset charset;
     private final Redirect redirect;
+    private final OutputCapture capture;
     private final int threadIndex;
 
     StreamExpectationsSpec(
@@ -63,6 +65,7 @@ public class StreamExpectationsSpec {
         this.byteCountAssert = null;
         this.charset = StandardCharsets.UTF_8;
         this.redirect = null;
+        this.capture = new OutputCapture(16, 16, stream);
         this.threadIndex = threadIndex;
     }
 
@@ -73,6 +76,7 @@ public class StreamExpectationsSpec {
             ByteCountAssert byteCountAssert,
             Charset charset,
             Redirect redirect,
+            OutputCapture capture,
             int threadIndex) {
         this.expectations = expectations;
         this.stream = stream;
@@ -80,6 +84,7 @@ public class StreamExpectationsSpec {
         this.byteCountAssert = byteCountAssert;
         this.charset = charset;
         this.redirect = redirect;
+        this.capture = capture;
         this.threadIndex = threadIndex;
     }
 
@@ -92,7 +97,7 @@ public class StreamExpectationsSpec {
      */
     public StreamExpectationsSpec linesSatisfy(LineAssert... asserts) {
         return new StreamExpectationsSpec(expectations, stream, CliAssertUtils.join(this.asserts, asserts), byteCountAssert,
-                charset, redirect, threadIndex);
+                charset, redirect, capture, threadIndex);
     }
 
     /**
@@ -104,7 +109,7 @@ public class StreamExpectationsSpec {
      */
     public StreamExpectationsSpec linesSatisfy(Collection<LineAssert> asserts) {
         return new StreamExpectationsSpec(expectations, stream, CliAssertUtils.join(this.asserts, asserts), byteCountAssert,
-                charset, redirect, threadIndex);
+                charset, redirect, capture, threadIndex);
     }
 
     /**
@@ -117,7 +122,7 @@ public class StreamExpectationsSpec {
     public StreamExpectationsSpec hasLines(String... lines) {
         return new StreamExpectationsSpec(expectations, stream,
                 CliAssertUtils.join(this.asserts, LineAssert.hasLines(stream, Arrays.asList(lines))), byteCountAssert, charset,
-                redirect, threadIndex);
+                redirect, capture, threadIndex);
     }
 
     /**
@@ -129,7 +134,8 @@ public class StreamExpectationsSpec {
      */
     public StreamExpectationsSpec hasLines(Collection<String> lines) {
         return new StreamExpectationsSpec(expectations, stream,
-                CliAssertUtils.join(this.asserts, LineAssert.hasLines(stream, lines)), byteCountAssert, charset, redirect,
+                CliAssertUtils.join(this.asserts, LineAssert.hasLines(stream, lines)), byteCountAssert, charset,
+                redirect, capture,
                 threadIndex);
     }
 
@@ -144,7 +150,7 @@ public class StreamExpectationsSpec {
         return new StreamExpectationsSpec(expectations, stream,
                 CliAssertUtils.join(this.asserts, LineAssert.doesNotHaveLines(stream, Arrays.asList(lines))), byteCountAssert,
                 charset,
-                redirect, threadIndex);
+                redirect, capture, threadIndex);
     }
 
     /**
@@ -157,7 +163,7 @@ public class StreamExpectationsSpec {
     public StreamExpectationsSpec doesNotHaveLines(Collection<String> lines) {
         return new StreamExpectationsSpec(expectations, stream,
                 CliAssertUtils.join(this.asserts, LineAssert.doesNotHaveLines(stream, lines)), byteCountAssert, charset,
-                redirect, threadIndex);
+                redirect, capture, threadIndex);
     }
 
     /**
@@ -171,7 +177,7 @@ public class StreamExpectationsSpec {
     public StreamExpectationsSpec hasLineCount(int expectedLineCount) {
         return new StreamExpectationsSpec(expectations, stream,
                 CliAssertUtils.join(this.asserts, LineAssert.hasLineCount(stream, expectedLineCount)), byteCountAssert, charset,
-                redirect, threadIndex);
+                redirect, capture, threadIndex);
     }
 
     /**
@@ -192,7 +198,7 @@ public class StreamExpectationsSpec {
         return new StreamExpectationsSpec(expectations, stream,
                 CliAssertUtils.join(this.asserts, LineAssert.hasLineCount(stream, expected, description)), byteCountAssert,
                 charset,
-                redirect, threadIndex);
+                redirect, capture, threadIndex);
     }
 
     /**
@@ -206,7 +212,7 @@ public class StreamExpectationsSpec {
     public StreamExpectationsSpec hasByteCount(long expectedByteCount) {
         return new StreamExpectationsSpec(expectations, stream, asserts,
                 ByteCountAssert.hasByteCount(stream, expectedByteCount),
-                charset, redirect, threadIndex);
+                charset, redirect, capture, threadIndex);
     }
 
     /**
@@ -225,7 +231,7 @@ public class StreamExpectationsSpec {
                 stream,
                 asserts,
                 ByteCountAssert.hasByteCount(stream, expected, description),
-                charset, redirect, threadIndex);
+                charset, redirect, capture, threadIndex);
     }
 
     /**
@@ -238,7 +244,7 @@ public class StreamExpectationsSpec {
      */
     public StreamExpectationsSpec isEmpty() {
         return new StreamExpectationsSpec(expectations, stream, asserts, ByteCountAssert.hasByteCount(stream, 0), charset,
-                redirect, threadIndex);
+                redirect, capture, threadIndex);
     }
 
     /**
@@ -253,7 +259,7 @@ public class StreamExpectationsSpec {
         return new StreamExpectationsSpec(expectations, stream,
                 CliAssertUtils.join(this.asserts, LineAssert.hasLinesContaining(stream, Arrays.asList(substrings))),
                 byteCountAssert,
-                charset, redirect, threadIndex);
+                charset, redirect, capture, threadIndex);
     }
 
     /**
@@ -267,7 +273,7 @@ public class StreamExpectationsSpec {
     public StreamExpectationsSpec hasLinesContaining(Collection<String> substrings) {
         return new StreamExpectationsSpec(expectations, stream,
                 CliAssertUtils.join(this.asserts, LineAssert.hasLinesContaining(stream, substrings)), byteCountAssert, charset,
-                redirect, threadIndex);
+                redirect, capture, threadIndex);
     }
 
     /**
@@ -280,7 +286,7 @@ public class StreamExpectationsSpec {
     public StreamExpectationsSpec doesNotHaveLinesContaining(String... substrings) {
         return new StreamExpectationsSpec(expectations, stream,
                 CliAssertUtils.join(this.asserts, LineAssert.doesNotHaveLinesContaining(stream, Arrays.asList(substrings))),
-                byteCountAssert, charset, redirect, threadIndex);
+                byteCountAssert, charset, redirect, capture, threadIndex);
     }
 
     /**
@@ -294,7 +300,7 @@ public class StreamExpectationsSpec {
         return new StreamExpectationsSpec(expectations, stream,
                 CliAssertUtils.join(this.asserts, LineAssert.doesNotHaveLinesContaining(stream, substrings)), byteCountAssert,
                 charset,
-                redirect, threadIndex);
+                redirect, capture, threadIndex);
     }
 
     /**
@@ -310,7 +316,7 @@ public class StreamExpectationsSpec {
         return new StreamExpectationsSpec(expectations, stream,
                 CliAssertUtils.join(this.asserts, LineAssert.hasLinesContainingCaseInsensitive(stream,
                         Stream.of(substrings).map(s -> s.toLowerCase(Locale.US)).collect(Collectors.toList()), Locale.US)),
-                byteCountAssert, charset, redirect, threadIndex);
+                byteCountAssert, charset, redirect, capture, threadIndex);
     }
 
     /**
@@ -326,7 +332,7 @@ public class StreamExpectationsSpec {
         return new StreamExpectationsSpec(expectations, stream,
                 CliAssertUtils.join(this.asserts, LineAssert.hasLinesContainingCaseInsensitive(stream,
                         substrings.stream().map(s -> s.toLowerCase(Locale.US)).collect(Collectors.toList()), Locale.US)),
-                byteCountAssert, charset, redirect, threadIndex);
+                byteCountAssert, charset, redirect, capture, threadIndex);
     }
 
     /**
@@ -341,7 +347,7 @@ public class StreamExpectationsSpec {
         return new StreamExpectationsSpec(expectations, stream,
                 CliAssertUtils.join(this.asserts, LineAssert.doesNotHaveLinesContainingCaseInsensitive(stream,
                         Stream.of(substrings).map(s -> s.toLowerCase(Locale.US)).collect(Collectors.toList()), Locale.US)),
-                byteCountAssert, charset, redirect, threadIndex);
+                byteCountAssert, charset, redirect, capture, threadIndex);
     }
 
     /**
@@ -356,7 +362,7 @@ public class StreamExpectationsSpec {
         return new StreamExpectationsSpec(expectations, stream,
                 CliAssertUtils.join(this.asserts, LineAssert.doesNotHaveLinesContainingCaseInsensitive(stream,
                         substrings.stream().map(s -> s.toLowerCase(Locale.US)).collect(Collectors.toList()), Locale.US)),
-                byteCountAssert, charset, redirect, threadIndex);
+                byteCountAssert, charset, redirect, capture, threadIndex);
     }
 
     /**
@@ -371,7 +377,7 @@ public class StreamExpectationsSpec {
     public StreamExpectationsSpec hasLinesMatching(Collection<String> regex) {
         return new StreamExpectationsSpec(expectations, stream,
                 CliAssertUtils.join(this.asserts, LineAssert.hasLinesMatching(stream, regex)), byteCountAssert, charset,
-                redirect, threadIndex);
+                redirect, capture, threadIndex);
     }
 
     /**
@@ -387,7 +393,7 @@ public class StreamExpectationsSpec {
         return new StreamExpectationsSpec(expectations, stream,
                 CliAssertUtils.join(this.asserts, LineAssert.hasLinesMatching(stream, Arrays.asList(regex))), byteCountAssert,
                 charset,
-                redirect, threadIndex);
+                redirect, capture, threadIndex);
     }
 
     /**
@@ -403,7 +409,7 @@ public class StreamExpectationsSpec {
         return new StreamExpectationsSpec(expectations, stream,
                 CliAssertUtils.join(this.asserts, LineAssert.hasLinesMatchingPatterns(stream, Arrays.asList(regex))),
                 byteCountAssert,
-                charset, redirect, threadIndex);
+                charset, redirect, capture, threadIndex);
     }
 
     /**
@@ -417,7 +423,7 @@ public class StreamExpectationsSpec {
     public StreamExpectationsSpec doesNotHaveLinesMatching(Collection<String> regex) {
         return new StreamExpectationsSpec(expectations, stream,
                 CliAssertUtils.join(this.asserts, LineAssert.doesNotHaveLinesMatching(stream, regex)), byteCountAssert, charset,
-                redirect, threadIndex);
+                redirect, capture, threadIndex);
     }
 
     /**
@@ -432,7 +438,7 @@ public class StreamExpectationsSpec {
         return new StreamExpectationsSpec(expectations, stream,
                 CliAssertUtils.join(this.asserts, LineAssert.doesNotHaveLinesMatching(stream, Arrays.asList(regex))),
                 byteCountAssert,
-                charset, redirect, threadIndex);
+                charset, redirect, capture, threadIndex);
     }
 
     /**
@@ -446,7 +452,7 @@ public class StreamExpectationsSpec {
     public StreamExpectationsSpec doesNotHaveLinesMatching(Pattern... regex) {
         return new StreamExpectationsSpec(expectations, stream,
                 CliAssertUtils.join(this.asserts, LineAssert.doesNotHaveLinesMatchingPatterns(stream, Arrays.asList(regex))),
-                byteCountAssert, charset, redirect, threadIndex);
+                byteCountAssert, charset, redirect, capture, threadIndex);
     }
 
     /**
@@ -457,7 +463,8 @@ public class StreamExpectationsSpec {
      * @since          0.0.1
      */
     public StreamExpectationsSpec charset(Charset charset) {
-        return new StreamExpectationsSpec(expectations, stream, asserts, byteCountAssert, charset, redirect, threadIndex);
+        return new StreamExpectationsSpec(expectations, stream, asserts, byteCountAssert, charset, redirect, capture,
+                threadIndex);
     }
 
     /**
@@ -471,7 +478,7 @@ public class StreamExpectationsSpec {
         return new StreamExpectationsSpec(expectations, stream, asserts, byteCountAssert, charset,
                 new Redirect(() -> {
                     return openFile(file);
-                }, sb -> sb.append(stream.redirectOperator()).append(file.toString())),
+                }, sb -> sb.append(stream.redirectOperator()).append(file.toString())), capture,
                 threadIndex);
     }
 
@@ -498,6 +505,7 @@ public class StreamExpectationsSpec {
                 new Redirect(
                         () -> new StreamExpectationsSpec.NonClosingOut(outputStream),
                         sb -> sb.append(stream.redirectOperator()).append(outputStream.getClass().getName())),
+                capture,
                 threadIndex);
     }
 
@@ -511,7 +519,7 @@ public class StreamExpectationsSpec {
         return new StreamExpectationsSpec(expectations, stream,
                 CliAssertUtils.join(this.asserts,
                         LineAssert.log(stream, LoggerFactory.getLogger("org.l2x6.cli.assured." + stream.name())::info)),
-                byteCountAssert, charset, redirect, threadIndex);
+                byteCountAssert, charset, redirect, capture, threadIndex);
     }
 
     /**
@@ -525,7 +533,43 @@ public class StreamExpectationsSpec {
     public StreamExpectationsSpec log(Consumer<String> logger) {
         return new StreamExpectationsSpec(expectations, stream,
                 CliAssertUtils.join(this.asserts, LineAssert.log(stream, logger)),
-                byteCountAssert, charset, redirect, threadIndex);
+                byteCountAssert, charset, redirect, capture, threadIndex);
+    }
+
+    /**
+     * Set how many head lines and tail lines of this output stream should be captured in memory for the sake of
+     * assertion failure reporting.
+     * The default value for both {@code maxHeadLines} and {@code maxTailLines} is 16.
+     *
+     * @param  maxHeadLines maximum number of leading lines of this output stream to store in memory
+     * @param  maxTailLines maximum number of last lines of this output stream to store in memory
+     * @return              an adjusted copy of this {@link StreamExpectationsSpec}
+     * @since               0.0.1
+     */
+    public StreamExpectationsSpec capture(int maxHeadLines, int maxTailLines) {
+        return new StreamExpectationsSpec(expectations, stream,
+                CliAssertUtils.join(this.asserts,
+                        LineAssert.log(stream, LoggerFactory.getLogger("org.l2x6.cli.assured." + stream.name())::info)),
+                byteCountAssert, charset, redirect,
+                new OutputCapture(maxHeadLines, maxTailLines, stream),
+                threadIndex);
+    }
+
+    /**
+     * Capture all lines of this output stream in memory for the sake of
+     * assertion failure reporting.
+     * By default only first 16 and last 16 lines are captured.
+     *
+     * @return an adjusted copy of this {@link StreamExpectationsSpec}
+     * @since  0.0.1
+     */
+    public StreamExpectationsSpec captureAll() {
+        return new StreamExpectationsSpec(expectations, stream,
+                CliAssertUtils.join(this.asserts,
+                        LineAssert.log(stream, LoggerFactory.getLogger("org.l2x6.cli.assured." + stream.name())::info)),
+                byteCountAssert, charset, redirect,
+                OutputCapture.captureAll(stream),
+                threadIndex);
     }
 
     /**
@@ -645,6 +689,7 @@ public class StreamExpectationsSpec {
                 charset,
                 redirect,
                 stream,
+                capture,
                 threadIndex);
     }
 
@@ -660,12 +705,118 @@ public class StreamExpectationsSpec {
     }
 
     /**
+     * A facility for recording output lines for the sake of failure reporting
+     *
+     * @since 0.0.1
+     */
+    static class OutputCapture {
+        static final int DEFAULT_CAPTURE_SIZE = 16;
+        private final int maxHead;
+        private final int maxTail;
+        private final StreamExpectationsSpec.ProcessOutput stream;
+
+        private int lineCount = 0;
+        private final List<String> headLines = new ArrayList<>();
+        private String[] tailLines;
+        private int tailLinesCount = 0;
+
+        static OutputCapture defaultCapture(ProcessOutput stream) {
+            return new OutputCapture(DEFAULT_CAPTURE_SIZE, DEFAULT_CAPTURE_SIZE, stream);
+        }
+
+        static OutputCapture noCapture(ProcessOutput stream) {
+            return new OutputCapture(0, 0, stream);
+        }
+
+        static OutputCapture captureAll(ProcessOutput stream) {
+            return new OutputCapture(-1, -1, stream);
+        }
+
+        OutputCapture(int maxHead, int maxTail, ProcessOutput stream) {
+            this.maxHead = maxHead;
+            this.maxTail = maxTail;
+            this.stream = stream;
+        }
+
+        /**
+         * Capture the given {@code line} if there is enough capacity in this {@link OutputCapture}.
+         *
+         * @param line the line to capture
+         * @since      0.0.1
+         */
+        public void capture(String line) {
+            synchronized (headLines) {
+
+                if (maxHead < 0 || headLines.size() < maxHead) {
+                    headLines.add(line);
+                }
+                if (maxHead >= 0 && lineCount >= maxHead && maxTail > 0) {
+                    if (tailLines == null) {
+                        tailLines = new String[maxTail];
+                    }
+                    tailLines[tailLinesCount++ % maxTail] = line;
+                }
+                lineCount++;
+            }
+        }
+
+        @ExcludeFromJacocoGeneratedReport
+        public StringBuilder toString(StringBuilder sb) {
+            synchronized (headLines) {
+                int storedTailLines = Math.min(tailLinesCount, maxTail);
+                if (lineCount == 0) {
+                    sb.append(stream.name()).append(": <no output>");
+                } else if (headLines.isEmpty() && storedTailLines == 0) {
+                    sb.append(stream.name()).append(": <no lines captured>");
+                } else {
+                    sb.append(stream.name()).append(":\n");
+                    for (String line : headLines) {
+                        sb.append("\n    ").append(line);
+                    }
+                    int omitted = lineCount - headLines.size();
+                    if (storedTailLines > 0) {
+                        omitted -= storedTailLines;
+                    }
+                    if (omitted > 0) {
+                        if (headLines.size() > 0) {
+                            sb.append("\n    ...");
+                        }
+                        sb
+                                .append("\n    [")
+                                .append(omitted).append(" lines omitted; set ")
+                                .append(stream.name()).append("().capture(maxHeadLines, maxTailLines) or ")
+                                .append(stream.name()).append("().captureAll() to capure more lines]");
+
+                        if (storedTailLines > 0) {
+                            sb.append("\n    ...");
+                        }
+                    }
+                    if (storedTailLines > 0) {
+                        for (int i = 0; i < storedTailLines; i++) {
+                            sb.append("\n    ").append(tailLines[(i + tailLinesCount) % storedTailLines]);
+                        }
+                    }
+                }
+            }
+            return sb;
+        }
+
+        @ExcludeFromJacocoGeneratedReport
+        public String toString() {
+            StringBuilder sb = new StringBuilder();
+            toString(sb);
+            return sb.toString();
+        }
+
+    }
+
+    /**
      * An output redirect of a process.
      *
      * @author <a href="https://github.com/ppalaga">Peter Palaga</a>
      * @since  0.0.1
      */
-    class Redirect {
+    static class Redirect {
 
         private final Supplier<OutputStream> delegate;
         private final Consumer<StringBuilder> toString;
@@ -707,6 +858,7 @@ public class StreamExpectationsSpec {
         final Charset charset;
         final Redirect redirect;
         final StreamExpectationsSpec.ProcessOutput stream;
+        final OutputCapture capture;
         final int threadIndex;
 
         static StreamExpectations hasNoLines(StreamExpectationsSpec.ProcessOutput stream, int threadIndex) {
@@ -716,6 +868,7 @@ public class StreamExpectationsSpec {
                     StandardCharsets.UTF_8,
                     null,
                     stream,
+                    OutputCapture.defaultCapture(stream),
                     threadIndex);
         }
 
@@ -726,6 +879,7 @@ public class StreamExpectationsSpec {
                     StandardCharsets.UTF_8,
                     null,
                     stream,
+                    OutputCapture.noCapture(stream),
                     threadIndex) {
                 public OutputConsumer consume(InputStream in) {
                     return new DevNull(in, ProcessOutput.stdout, threadIndex);
@@ -739,17 +893,23 @@ public class StreamExpectationsSpec {
                 Charset charset,
                 Redirect redirect,
                 StreamExpectationsSpec.ProcessOutput stream,
+                OutputCapture capture,
                 int threadIndex) {
             this.lineAsserts = Objects.requireNonNull(lineAsserts, "lineAsserts");
             this.byteCountAssert = byteCountAssert;
             this.charset = Objects.requireNonNull(charset, "charset");
             this.redirect = redirect;
             this.stream = stream;
+            this.capture = capture;
             this.threadIndex = threadIndex;
         }
 
         public void assertSatisfied(long byteCount, Assert.FailureCollector failureCollector) {
+            final int sumBefore = failureCollector.sum(stream);
             lineAsserts.stream().forEach(a -> a.evaluate(failureCollector));
+            if (sumBefore < failureCollector.sum(stream)) {
+                failureCollector.capture(stream, capture::toString);
+            }
             if (byteCountAssert != null) {
                 byteCountAssert.byteCount(byteCount).evaluate(failureCollector);
             }
@@ -757,6 +917,7 @@ public class StreamExpectationsSpec {
 
         public StreamExpectations line(String line) {
             lineAsserts.stream().forEach(a -> a.line(line));
+            capture.capture(line);
             return this;
         }
 

@@ -54,7 +54,7 @@ public class CommandResult {
     public CommandResult assertSuccess() {
         Assert.FailureCollector collector = new Assert.FailureCollector(command);
         if (exception != null) {
-            collector.exception(exception);
+            collector.exception(null, exception);
         }
         outputAssert.evaluate(collector);
         collector.assertSatisfied();

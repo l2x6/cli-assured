@@ -29,6 +29,12 @@ public class TestApp {
             Thread.sleep(delay);
             System.out.println("Sleeped for " + delay + " ms");
             break;
+        case "outputLines":
+            final int cnt = Integer.parseInt(args[1]);
+            for (int i = 0; i < cnt; i++) {
+                System.out.println("Line " + i);
+            }
+            break;
         case "exitCode":
             final int exitCode = Integer.parseInt(args[1]);
             System.out.println("Returning exit code " + exitCode);

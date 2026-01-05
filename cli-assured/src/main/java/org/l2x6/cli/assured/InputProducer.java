@@ -41,7 +41,7 @@ class InputProducer implements Assert {
     @Override
     public FailureCollector evaluate(FailureCollector failureCollector) {
         synchronized (exceptions) {
-            exceptions.forEach(failureCollector::exception);
+            exceptions.forEach(e -> failureCollector.exception(null, e));
         }
         return failureCollector;
     }

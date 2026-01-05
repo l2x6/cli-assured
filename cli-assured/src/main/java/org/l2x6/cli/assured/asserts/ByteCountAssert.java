@@ -73,7 +73,7 @@ public class ByteCountAssert implements Assert {
     @Override
     public FailureCollector evaluate(FailureCollector failureCollector) {
         if (!expected.test(actualCount)) {
-            failureCollector.failure(Assert.Internal.formatMessage(description, this::eval));
+            failureCollector.failure(stream, Assert.Internal.formatMessage(description, this::eval));
         }
         return failureCollector;
     }
