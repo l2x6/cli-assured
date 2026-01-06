@@ -49,12 +49,36 @@ public class MvnTest {
 
         Assertions.assertThat(mvnw.isInstalled()).isTrue();
 
-        mvnw.args("-v")
+        mvnw.args("--version")
                 .then()
                 .stdout()
                 .hasLines("Apache Maven 3.9.11 (3e54c93a704957b63ee3494413a2b544fd3d825b)")
                 .execute()
                 .assertSuccess();
+    }
+
+    @Test
+    void fromMvnwWithM2Directory() {
+
+        final Path m2Dir = Paths.get("target/m2-" + UUID.randomUUID());
+
+        final Mvn mvnw = Mvn.fromMvnw(
+                Paths.get("target/test-classes/test-project").toAbsolutePath().normalize(),
+                m2Dir);
+
+        Assertions.assertThat(mvnw.isInstalled()).isFalse();
+
+        mvnw
+                .installIfNeeded()
+                .args("--version")
+                .then()
+                .stdout()
+                .hasLines("Apache Maven 3.9.11 (3e54c93a704957b63ee3494413a2b544fd3d825b)")
+                .execute()
+                .assertSuccess();
+
+        Assertions.assertThat(m2Dir.resolve("wrapper/dists/apache-maven-3.9.11/a2d47e15/bin/mvn")).isRegularFile();
+
     }
 
     @Test
