@@ -142,3 +142,56 @@ CliAssured
     .execute()
     .assertSuccess();
 ----
+
+== `mvn-assured` - Maven integration testing
+
+With the following dependency
+
+[source,xml]
+----
+<dependency>
+  <groupId>org.l2x6.cli-assured</groupId>
+  <artifactId>mvn-assured</artifactId>
+  <version><!-- Use the latest --></version>
+</dependency>
+----
+
+you can invoke Maven as follows:
+
+[source,java]
+----
+Mvn.version("3.9.11")
+    .installIfNeeded() // installs Maven from
+                       // https://repo.maven.apache.org/maven2/org/apache/maven/apache-maven/3.9.11/apache-maven-3.9.11-bin.zip
+                       // to ~/.m2/wrapper/dists/apache-maven-3.9.11/a2d47e15
+                       // much like Maven Wrapper would do.
+
+    .args("--version") // Returns an org.l2x6.cli.assured.CommandSpec,
+                       // so the rest is a standard cli-assured code
+    .then()
+        .stdout()
+            .hasLines("Apache Maven 3.9.11 (3e54c93a704957b63ee3494413a2b544fd3d825b)")
+    .execute()
+    .assertSuccess();
+----
+
+Or alternatively,
+
+[source,java]
+----
+Mvn.fromMvnw(Paths.get(".")) // Find .mvn/wrapper/maven-wrapper.properties
+                             // under the nearest ancestor,
+                             // extract the distribution URL from there
+                             // find Maven version from the distribution URL
+                             // and use all of that to create a new Mvn instance
+
+    .installIfNeeded() // You can omit this, if you are sure mvnw was run before
+
+    .args("--version") // Returns an org.l2x6.cli.assured.CommandSpec,
+                       // so the rest is a standard cli-assured code
+    .then()
+        .stdout()
+            .hasLines("Apache Maven 3.9.11 (3e54c93a704957b63ee3494413a2b544fd3d825b)")
+    .execute()
+    .assertSuccess();
+----

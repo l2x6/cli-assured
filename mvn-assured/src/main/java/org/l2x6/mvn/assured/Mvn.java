@@ -26,6 +26,7 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Date;
 import java.util.Enumeration;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Properties;
 import java.util.Set;
@@ -43,7 +44,8 @@ import org.slf4j.LoggerFactory;
 // @formatter:off
 /**
  * A Maven version installed or installable locally under {@code ~/.m2/wrapper/dists}.
- * Can be used for invoking {@code mvn[.cmd]} after {@link #installIfNeeded()} or {@link #assertInstalled()} as follows:
+ * Can be used for invoking {@code mvn[.cmd]} after calling {@link #installIfNeeded()} or {@link #assertInstalled()} as
+ * follows:
  *
  * <pre>{@code
  * Mvn.version("3.9.11")
@@ -62,6 +64,7 @@ import org.slf4j.LoggerFactory;
 // @formatter:on
 public class Mvn {
     private static final org.slf4j.Logger log = LoggerFactory.getLogger(Mvn.class);
+    private static final Pattern MAVEN_URL_PATH_PATTERN = Pattern.compile("/apache-maven-(.*)-bin\\.zip$");
     private static final Pattern MAVEN_CORE_PATTERN = Pattern.compile("^maven-core-(.*)\\.jar$");
     private static final int BUFFER_SIZE = 8192;
 
@@ -84,15 +87,34 @@ public class Mvn {
 
     /**
      * Create a new {@link Mvn} with the {@link #distributionUrl} looked up in {@code .mvn/wrapper/maven-wrapper.properties}
-     * relative to current directory or its nearest ancestor directory having {@code .mvn/wrapper/maven-wrapper.properties}.
+     * relative to current directory or its nearest ancestor directory.
      *
-     * @param  version the Maven version to select, such as {@code 3.9.11}
-     * @return         a new {@link Mvn}
+     * @param  directory             the directory where to start looking for {@code .mvn/wrapper/maven-wrapper.properties}
+     * @return                       a new {@link Mvn}
+     * @throws IllegalStateException if {@code .mvn/wrapper/maven-wrapper.properties} cannot be found under any of the
+     *                               ancestors
      *
-     * @since          0.0.1
+     * @since                        0.0.1
      */
     @ExcludeFromJacocoGeneratedReport
     public static Mvn fromMvnw(Path directory) {
+        return fromMvnw(directory, findM2Directory());
+    }
+
+    /**
+     * Create a new {@link Mvn} with the {@link #distributionUrl} looked up in {@code .mvn/wrapper/maven-wrapper.properties}
+     * relative to current directory or its nearest ancestor directory.
+     *
+     * @param  directory             the directory where to start looking for {@code .mvn/wrapper/maven-wrapper.properties}
+     * @param  m2Directory           a custom Maven user home directory instead of the default {@code ~/.m2}
+     * @return                       a new {@link Mvn}
+     * @throws IllegalStateException if {@code .mvn/wrapper/maven-wrapper.properties} cannot be found under any of the
+     *                               ancestors
+     *
+     * @since                        0.0.1
+     */
+    @ExcludeFromJacocoGeneratedReport
+    public static Mvn fromMvnw(Path directory, Path m2Directory) {
         Path dir = directory;
         while (dir != null) {
             final Path wrapperProps = dir.resolve(".mvn/wrapper/maven-wrapper.properties");
@@ -103,7 +125,7 @@ public class Mvn {
                 } catch (IOException e) {
                     throw new UncheckedIOException("Could not read " + wrapperProps, e);
                 }
-                return fromDistributionUrl((String) props.get("distributionUrl"));
+                return fromDistributionUrl((String) props.get("distributionUrl"), m2Directory);
             }
             dir = dir.getParent();
         }
@@ -112,14 +134,14 @@ public class Mvn {
     }
 
     private Mvn(String version) {
-        this.version = version;
+        this.version = Objects.requireNonNull(version, "version");
         this.m2Directory = findM2Directory();
         this.distributionUrl = defaultDistributionUrl(version);
         this.home = null;
     }
 
     private Mvn(String version, Path m2Directory, Path home, String downloadUrl) {
-        this.version = version;
+        this.version = Objects.requireNonNull(version, "version");
         this.m2Directory = m2Directory;
         this.home = home;
         this.distributionUrl = downloadUrl;
@@ -339,24 +361,36 @@ public class Mvn {
     }
 
     @ExcludeFromJacocoGeneratedReport
-    static Mvn fromDistributionUrl(String distributionUrl) {
-        final Path m2Directory = findM2Directory();
+    static Mvn fromDistributionUrl(String distributionUrl, Path m2Directory) {
         final Path distsDir = m2Directory.resolve("wrapper/dists");
         final String hash = hashString(distributionUrl);
         final Optional<Path> mavenHome;
-        try (Stream<Path> versionDirs = Files.list(distsDir)) {
-            mavenHome = versionDirs
-                    .map(vd -> vd.resolve(hash))
-                    .filter(Files::isDirectory)
-                    .findFirst();
-        } catch (IOException e) {
-            throw new UncheckedIOException("Could not list " + distsDir, e);
+        if (Files.isDirectory(distsDir)) {
+            try (Stream<Path> versionDirs = Files.list(distsDir)) {
+                mavenHome = versionDirs
+                        .map(vd -> vd.resolve(hash))
+                        .filter(Files::isDirectory)
+                        .findFirst();
+            } catch (IOException e) {
+                throw new UncheckedIOException("Could not list " + distsDir, e);
+            }
+        } else {
+            mavenHome = Optional.empty();
         }
+        final String version;
         if (!mavenHome.isPresent()) {
-            throw new IllegalStateException("No installation of " + distributionUrl + " found in " + distsDir);
+            final Matcher m = MAVEN_URL_PATH_PATTERN.matcher(distributionUrl);
+            if (m.find()) {
+                version = m.group(1);
+            } else {
+                throw new IllegalStateException("Cannot extract Maven version from distribution URL " + distributionUrl
+                        + " because it does not match " + MAVEN_CORE_PATTERN.pattern());
+            }
+        } else {
+            version = findVersion(mavenHome.get());
         }
-        final String version = findVersion(mavenHome.get());
-        return new Mvn(version, m2Directory, mavenHome.get(), distributionUrl);
+
+        return new Mvn(version, m2Directory, mavenHome.orElse(null), distributionUrl);
     }
 
     static String defaultDistributionUrl(String version) {
