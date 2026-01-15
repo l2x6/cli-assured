@@ -11,7 +11,7 @@
     <parent>
         <groupId>org.l2x6.cli-assured</groupId>
         <artifactId>cli-assured-parent</artifactId>
-        <version>0.0.1-SNAPSHOT</version>
+        <version>0.0.1-alpha15</version>
     </parent>
 
     <artifactId>cli-assured-tests</artifactId>
