@@ -25,12 +25,12 @@ public class ProcessTest {
 
     @Test
     void killForcibly() {
-        assertKill(true, 143);
+        assertKill(true, 137);
     }
 
     @Test
     void killGently() {
-        assertKill(false, 137);
+        assertKill(false, 143);
     }
 
     @Test
