@@ -88,6 +88,22 @@ public class Mvn {
     /**
      * Create a new {@link Mvn} with the {@link #distributionUrl} looked up in {@code .mvn/wrapper/maven-wrapper.properties}
      * relative to current directory or its nearest ancestor directory.
+     * Equivalent to {@code Mvn.fromMvnw(Paths.get(".").toAbsolutePath().normalize())}.
+     *
+     * @return                       a new {@link Mvn}
+     * @throws IllegalStateException if {@code .mvn/wrapper/maven-wrapper.properties} cannot be found under any of the
+     *                               ancestors
+     *
+     * @since                        0.0.1
+     */
+    @ExcludeFromJacocoGeneratedReport
+    public static Mvn fromMvnw() {
+        return fromMvnw(Paths.get(".").toAbsolutePath().normalize());
+    }
+
+    /**
+     * Create a new {@link Mvn} with the {@link #distributionUrl} looked up in {@code .mvn/wrapper/maven-wrapper.properties}
+     * relative to the given {@code directory} or its nearest ancestor directory.
      *
      * @param  directory             the directory where to start looking for {@code .mvn/wrapper/maven-wrapper.properties}
      * @return                       a new {@link Mvn}
