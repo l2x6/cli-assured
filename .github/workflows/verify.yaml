@@ -72,4 +72,8 @@ jobs:
           path: ${{ steps.maven-m2.outputs.repo }}
 
       - run: ./mvnw test -e -B -ntp -pl ':cli-assured-tests'
+        if: ${{ matrix.jdk < 21 }}
+
+      - run: ./mvnw test -e -B -ntp -pl ':cli-assured-tests,:cli-assured-tests-java21'
+        if: ${{ matrix.jdk >= 21 }}
 
