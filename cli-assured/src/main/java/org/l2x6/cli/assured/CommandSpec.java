@@ -50,6 +50,8 @@ public class CommandSpec {
     private final boolean stderrToStdout;
     private final Consumer<OutputStream> stdin;
     private final int threadIndex;
+    private final boolean autoCloseForcibly;
+    private final Duration autoCloseTimeout;
 
     CommandSpec(
             Supplier<String> executable,
@@ -62,6 +64,8 @@ public class CommandSpec {
         this.threadIndex = threadCounter.getAndIncrement();
         this.expectations = new ExpectationsSpec(this, stderrToStdout, threadIndex);
         this.stdin = null;
+        this.autoCloseForcibly = false;
+        this.autoCloseTimeout = null;
     }
 
     CommandSpec(
@@ -72,6 +76,8 @@ public class CommandSpec {
             ExpectationsSpec expectations,
             boolean stderrToStdout,
             Consumer<OutputStream> stdin,
+            boolean autoCloseForcibly,
+            Duration autoCloseTimeout,
             int threadIndex) {
         this.executable = executable;
         this.arguments = arguments;
@@ -81,6 +87,8 @@ public class CommandSpec {
         this.expectations = expectations;
         this.stdin = stdin;
         this.threadIndex = threadIndex;
+        this.autoCloseForcibly = autoCloseForcibly;
+        this.autoCloseTimeout = autoCloseTimeout;
     }
 
     /**
@@ -96,7 +104,7 @@ public class CommandSpec {
      */
     public CommandSpec command(String executable, String... arguments) {
         return new CommandSpec(() -> executable, CliAssertUtils.join(this.arguments, arguments), env, cd, expectations,
-                stderrToStdout, stdin, threadIndex);
+                stderrToStdout, stdin, autoCloseForcibly, autoCloseTimeout, threadIndex);
     }
 
     /**
@@ -107,7 +115,8 @@ public class CommandSpec {
      * @since             0.0.1
      */
     public CommandSpec executable(String executable) {
-        return new CommandSpec(() -> executable, arguments, env, cd, expectations, stderrToStdout, stdin, threadIndex);
+        return new CommandSpec(() -> executable, arguments, env, cd, expectations, stderrToStdout, stdin, autoCloseForcibly,
+                autoCloseTimeout, threadIndex);
     }
 
     /**
@@ -118,7 +127,8 @@ public class CommandSpec {
      */
     public CommandSpec java() {
         final String exec = javaExecutable();
-        return new CommandSpec(() -> exec, arguments, env, cd, expectations, stderrToStdout, stdin, threadIndex);
+        return new CommandSpec(() -> exec, arguments, env, cd, expectations, stderrToStdout, stdin, autoCloseForcibly,
+                autoCloseTimeout, threadIndex);
     }
 
     @ExcludeFromJacocoGeneratedReport
@@ -145,7 +155,7 @@ public class CommandSpec {
      */
     public CommandSpec arg(String arg) {
         return new CommandSpec(executable, CliAssertUtils.join(this.arguments, arg), env, cd, expectations, stderrToStdout,
-                stdin, threadIndex);
+                stdin, autoCloseForcibly, autoCloseTimeout, threadIndex);
     }
 
     /**
@@ -157,7 +167,7 @@ public class CommandSpec {
      */
     public CommandSpec args(String... args) {
         return new CommandSpec(executable, CliAssertUtils.join(this.arguments, args), env, cd, expectations, stderrToStdout,
-                stdin, threadIndex);
+                stdin, autoCloseForcibly, autoCloseTimeout, threadIndex);
     }
 
     /**
@@ -169,7 +179,7 @@ public class CommandSpec {
      */
     public CommandSpec args(Collection<String> arguments) {
         return new CommandSpec(executable, CliAssertUtils.join(this.arguments, arguments), env, cd, expectations,
-                stderrToStdout, stdin, threadIndex);
+                stderrToStdout, stdin, autoCloseForcibly, autoCloseTimeout, threadIndex);
     }
 
     /**
@@ -183,7 +193,7 @@ public class CommandSpec {
         Map<String, String> e = new LinkedHashMap<>(this.env);
         e.putAll(env);
         return new CommandSpec(executable, arguments, Collections.unmodifiableMap(e), cd, expectations, stderrToStdout, stdin,
-                threadIndex);
+                autoCloseForcibly, autoCloseTimeout, threadIndex);
     }
 
     /**
@@ -209,7 +219,7 @@ public class CommandSpec {
             e.put(more[i++], more[i++]);
         }
         return new CommandSpec(executable, arguments, Collections.unmodifiableMap(e), cd, expectations, stderrToStdout, stdin,
-                threadIndex);
+                autoCloseForcibly, autoCloseTimeout, threadIndex);
     }
 
     /**
@@ -220,7 +230,8 @@ public class CommandSpec {
      * @since                0.0.1
      */
     public CommandSpec cd(Path workDirectory) {
-        return new CommandSpec(executable, arguments, env, workDirectory, expectations, stderrToStdout, stdin, threadIndex);
+        return new CommandSpec(executable, arguments, env, workDirectory, expectations, stderrToStdout, stdin,
+                autoCloseForcibly, autoCloseTimeout, threadIndex);
     }
 
     /**
@@ -230,7 +241,8 @@ public class CommandSpec {
      * @since  0.0.1
      */
     public CommandSpec stderrToStdout() {
-        return new CommandSpec(executable, arguments, env, cd, expectations, true, stdin, threadIndex);
+        return new CommandSpec(executable, arguments, env, cd, expectations, true, stdin, autoCloseForcibly, autoCloseTimeout,
+                threadIndex);
     }
 
     /**
@@ -263,7 +275,8 @@ public class CommandSpec {
             throw new IllegalStateException("stdin was already defined for this " + CommandSpec.class.getName()
                     + ". You may want to keep ony one stdin(...) call for the given CommandSpec chain");
         }
-        return new CommandSpec(executable, arguments, env, cd, expectations, stderrToStdout, stdin, threadIndex);
+        return new CommandSpec(executable, arguments, env, cd, expectations, stderrToStdout, stdin, autoCloseForcibly,
+                autoCloseTimeout, threadIndex);
     }
 
     /**
@@ -282,7 +295,7 @@ public class CommandSpec {
         }
         return new CommandSpec(executable, arguments, env, cd, expectations, stderrToStdout,
                 new StringPipe(stdin),
-                threadIndex);
+                autoCloseForcibly, autoCloseTimeout, threadIndex);
     }
 
     /**
@@ -301,7 +314,38 @@ public class CommandSpec {
         }
         return new CommandSpec(executable, arguments, env, cd, expectations, stderrToStdout,
                 new FilePipe(file),
-                threadIndex);
+                autoCloseForcibly, autoCloseTimeout, threadIndex);
+    }
+
+    /**
+     * Calling this method causes the {@link CommandProcess#close()} method of the {@link CommandProcess} instance
+     * returned by {@link #start()} to kill the underlying {@link Process} via {@link Process#destroyForcibly()}.
+     * If this method is not called, then the {@link CommandProcess#close()} will kill the underlying
+     * {@link Process} via {@link Process#destroy()}.
+     *
+     * @return an adjusted copy of this {@link CommandSpec}
+     * @since  0.0.1
+     */
+    public CommandSpec autoCloseForcibly() {
+        return new CommandSpec(executable, arguments, env, cd, expectations, stderrToStdout,
+                stdin,
+                true, autoCloseTimeout, threadIndex);
+    }
+
+    /**
+     * Calling this method causes the {@link CommandProcess#close()} method of the {@link CommandProcess} instance
+     * returned by {@link #start()} to wait the specified {@code autoCloseTimeout} for the termination of the underlying
+     * {@link Process}.
+     * If this method is not called, then {@link CommandProcess#close()} will wait potentially indefinitely for
+     * the termination of the underlying {@link Process}.
+     *
+     * @return an adjusted copy of this {@link CommandSpec}
+     * @since  0.0.1
+     */
+    public CommandSpec autoCloseTimeout(Duration autoCloseTimeout) {
+        return new CommandSpec(executable, arguments, env, cd, expectations, stderrToStdout,
+                stdin,
+                true, autoCloseTimeout, threadIndex);
     }
 
     // @formatter:off
@@ -346,7 +390,8 @@ public class CommandSpec {
      * @since               0.0.1
      */
     CommandSpec expect(ExpectationsSpec expectations) {
-        return new CommandSpec(executable, arguments, env, cd, expectations, stderrToStdout, stdin, threadIndex);
+        return new CommandSpec(executable, arguments, env, cd, expectations, stderrToStdout, stdin, autoCloseForcibly,
+                autoCloseTimeout, threadIndex);
     }
 
     /**
@@ -411,7 +456,9 @@ public class CommandSpec {
                     expectations.exitCodeAssert,
                     stdinProcess,
                     out,
-                    err);
+                    err,
+                    autoCloseForcibly,
+                    autoCloseTimeout);
         } catch (IOException e) {
             throw new UncheckedIOException("Could not execute " + cmdString, e);
         }
