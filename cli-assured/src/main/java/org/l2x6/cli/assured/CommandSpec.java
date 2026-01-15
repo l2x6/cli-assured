@@ -29,6 +29,7 @@ import java.util.regex.Pattern;
 import org.l2x6.cli.assured.CliAssertUtils.ExcludeFromJacocoGeneratedReport;
 import org.l2x6.cli.assured.StreamExpectationsSpec.StreamExpectations;
 import org.l2x6.cli.assured.asserts.Assert;
+import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
@@ -38,7 +39,7 @@ import org.slf4j.LoggerFactory;
  * @author <a href="https://github.com/ppalaga">Peter Palaga</a>
  */
 public class CommandSpec {
-    private static final org.slf4j.Logger log = LoggerFactory.getLogger(CommandSpec.class);
+    private static final Logger log = LoggerFactory.getLogger(CommandSpec.class);
     private static final Pattern WS_PATTERN = Pattern.compile("\\s");
     private static AtomicInteger threadCounter = new AtomicInteger();
 
@@ -429,6 +430,7 @@ public class CommandSpec {
         }
         try {
             final Process process = builder.start();
+            final long startMillisTime = System.currentTimeMillis();
             final OutputConsumer out = expectations.stdout.consume(process.getInputStream());
             out.start();
 
@@ -458,7 +460,8 @@ public class CommandSpec {
                     out,
                     err,
                     autoCloseForcibly,
-                    autoCloseTimeout);
+                    autoCloseTimeout,
+                    startMillisTime);
         } catch (IOException e) {
             throw new UncheckedIOException("Could not execute " + cmdString, e);
         }

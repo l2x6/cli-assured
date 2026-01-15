@@ -27,6 +27,7 @@ public class CommandProcess implements AutoCloseable {
     private final OutputConsumer err;
     private final boolean autoCloseForcibly;
     private final Duration autoCloseTimeout;
+    private final long startMillisTime;
 
     private volatile boolean closed = false;
     private final Assert asserts;
@@ -42,7 +43,8 @@ public class CommandProcess implements AutoCloseable {
             OutputConsumer out,
             OutputConsumer err,
             boolean autoCloseForcibly,
-            Duration autoCloseTimeout) {
+            Duration autoCloseTimeout,
+            long startMillisTime) {
         super();
         this.cmdString = Objects.requireNonNull(cmdArrayString, "cmdArrayString");
         this.process = Objects.requireNonNull(process, "process");
@@ -53,7 +55,8 @@ public class CommandProcess implements AutoCloseable {
         this.err = Objects.requireNonNull(err, "err");
         this.autoCloseForcibly = autoCloseForcibly;
         this.autoCloseTimeout = autoCloseTimeout;
-        this.pid = PidLookup.getPid(process);
+        this.startMillisTime = startMillisTime;
+        this.pid = ProcessUtils.getPid(process);
         this.shutDownHook = new Thread(new Runnable() {
             @Override
             public void run() {
@@ -64,7 +67,12 @@ public class CommandProcess implements AutoCloseable {
     }
 
     /**
-     * Calls {@link OutputConsumer#cancel()} on both {@link #out} and {@link #err} and kills the underlying process.
+     * Calls {@link OutputConsumer#cancel()} on both {@link #out} and {@link #err} and kills the underlying process
+     * by calling {@link Process#destroyForcibly()} if {@code forcibly} is {@code true} or using
+     * {@link Process#destroy()} otherwise.
+     * <p>
+     * On Java version 9 or newer, if {@code forcibly} is {@code true}, then also all descendant processes are killed
+     * via {@code java.lang.ProcessHandle.destroyForcibly()}.
      *
      * @param forcibly if {@code true} will call {@link Process#destroyForcibly()}; otherwise will call
      *                 {@link Process#destroy()}
@@ -72,6 +80,10 @@ public class CommandProcess implements AutoCloseable {
      */
     @ExcludeFromJacocoGeneratedReport
     public void kill(boolean forcibly) {
+        try {
+            Runtime.getRuntime().removeShutdownHook(shutDownHook);
+        } catch (Exception ignored) {
+        }
         if (!closed) {
             this.closed = true;
             out.cancel();
@@ -83,13 +95,7 @@ public class CommandProcess implements AutoCloseable {
             }
         }
 
-        if (process != null && process.isAlive()) {
-            if (forcibly) {
-                process.destroy();
-            } else {
-                process.destroyForcibly();
-            }
-        }
+        ProcessUtils.kill(process, forcibly);
 
     }
 
@@ -101,14 +107,13 @@ public class CommandProcess implements AutoCloseable {
      */
     @ExcludeFromJacocoGeneratedReport
     public CommandResult awaitTermination() {
-        final long startMillisTime = System.currentTimeMillis();
         try {
             process.waitFor();
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             throw new RuntimeException("Interrupted", e);
         }
-        return terminated(startMillisTime);
+        return terminated();
     }
 
     /**
@@ -133,13 +138,13 @@ public class CommandProcess implements AutoCloseable {
      */
     @ExcludeFromJacocoGeneratedReport
     public CommandResult awaitTermination(long timeoutMs) {
-        final long startMillisTime = System.currentTimeMillis();
+        final long timeoutStart = System.currentTimeMillis();
 
         do {
             try {
-                return terminated(startMillisTime);
+                return terminated();
             } catch (IllegalThreadStateException ex) {
-                final long duration = System.currentTimeMillis() - startMillisTime;
+                final long duration = System.currentTimeMillis() - timeoutStart;
                 if (duration < timeoutMs) {
                     try {
                         Thread.sleep(Math.min(timeoutMs - duration, 100));
@@ -149,11 +154,11 @@ public class CommandProcess implements AutoCloseable {
                     }
                 }
             }
-        } while (System.currentTimeMillis() - startMillisTime <= timeoutMs);
+        } while (System.currentTimeMillis() - timeoutStart <= timeoutMs);
         return new CommandResult(
                 cmdString,
                 -1,
-                Duration.ofMillis(System.currentTimeMillis() - startMillisTime),
+                Duration.ofMillis(System.currentTimeMillis() - timeoutStart),
                 out.byteCount(),
                 err.byteCount(),
                 new TimeoutAssertionError("Command has not terminated within " + timeoutMs + " ms"),
@@ -161,7 +166,7 @@ public class CommandProcess implements AutoCloseable {
     }
 
     @ExcludeFromJacocoGeneratedReport
-    CommandResult terminated(long startMillisTime) {
+    CommandResult terminated() {
         int exitCode = process.exitValue();
         try {
             Runtime.getRuntime().removeShutdownHook(shutDownHook);
