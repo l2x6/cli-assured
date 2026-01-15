@@ -45,7 +45,7 @@ public class MvnTest {
                 .execute()
                 .assertSuccess();
 
-        Mvn mvnw = Mvn.fromMvnw(Paths.get(".").toAbsolutePath().normalize());
+        Mvn mvnw = Mvn.fromMvnw();
 
         Assertions.assertThat(mvnw.isInstalled()).isTrue();
 

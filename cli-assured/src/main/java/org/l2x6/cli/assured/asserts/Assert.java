@@ -450,14 +450,16 @@ public interface Assert {
             Matcher m = PLACE_HOLDER_PATTERN.matcher(message);
             StringBuffer sb = new StringBuffer();
             while (m.find()) {
-                m.appendReplacement(sb, eval.apply(m.group(1)));
+                m.appendReplacement(sb, Matcher.quoteReplacement(eval.apply(m.group(1))));
             }
             m.appendTail(sb);
             return sb.toString();
         }
 
         static String list(Collection<? extends Object> list) {
-            return list.stream().map(Object::toString).collect(Collectors.joining("\n    "));
+            return list.stream()
+                    .map(Object::toString)
+                    .collect(Collectors.joining("\n    "));
         }
     }
 }

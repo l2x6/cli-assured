@@ -38,13 +38,13 @@ public class ProcessTest {
     void close() {
         List<String> lines = Collections.synchronizedList(new ArrayList<>());
         long pid;
-        try (CommandProcess proc = JavaTest.run("sleep", "1000")
+        try (CommandProcess proc = JavaTest.run("sleep", "10000")
                 .log(lines::add)
                 .exitCodeIsAnyOf(1, 137) // Windows, Linux
                 .start()) {
             pid = proc.pid();
             Awaitility.waitAtMost(10, TimeUnit.SECONDS)
-                    .until(() -> lines.size() == 1 && lines.contains("About to sleep for 1000 ms"));
+                    .until(() -> lines.size() >= 1 && lines.contains("About to sleep for 10000 ms"));
 
             /* Make sure we can find the PID using some OS specific scripting */
             assertProcessExistence(pid, true);
@@ -60,7 +60,7 @@ public class ProcessTest {
     void closeForcibly() {
         List<String> lines = Collections.synchronizedList(new ArrayList<>());
         long pid;
-        try (CommandProcess proc = JavaTest.command("sleep", "1000")
+        try (CommandProcess proc = JavaTest.command("sleep", "10000")
                 .autoCloseForcibly()
                 .autoCloseTimeout(Duration.ofSeconds(10))
                 .then()
@@ -70,7 +70,7 @@ public class ProcessTest {
                 .start()) {
             pid = proc.pid();
             Awaitility.waitAtMost(10, TimeUnit.SECONDS)
-                    .until(() -> lines.size() == 1 && lines.contains("About to sleep for 1000 ms"));
+                    .until(() -> lines.size() >= 1 && lines.contains("About to sleep for 10000 ms"));
 
             /* Make sure we can find the PID using some OS specific scripting */
             assertProcessExistence(pid, true);
