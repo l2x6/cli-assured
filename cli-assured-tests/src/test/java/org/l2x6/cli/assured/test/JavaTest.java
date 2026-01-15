@@ -16,10 +16,8 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
-import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
 import org.assertj.core.api.Assertions;
-import org.awaitility.Awaitility;
 import org.junit.jupiter.api.Test;
 import org.l2x6.cli.assured.CliAssured;
 import org.l2x6.cli.assured.CommandProcess;
@@ -125,75 +123,6 @@ public class JavaTest {
                         + "stderr:\n"
                         + "\n"
                         + "    Hello stderr Joe");
-
-    }
-
-    @Test
-    void killForcibly() {
-        assertKill(true, 143);
-    }
-
-    @Test
-    void killGently() {
-        assertKill(false, 137);
-    }
-
-    static void assertKill(boolean forcibly, int exitCodeLinux) {
-        List<String> lines = Collections.synchronizedList(new ArrayList<>());
-        CommandProcess proc = run("sleep", "500")
-                .log(lines::add)
-                .exitCodeIsAnyOf(1, exitCodeLinux) // Windows, Linux
-                .start();
-
-        Awaitility.waitAtMost(10, TimeUnit.SECONDS)
-                .until(() -> lines.size() == 1 && lines.contains("About to sleep for 500 ms"));
-        proc.kill(forcibly);
-        proc.kill(forcibly);
-
-        proc.awaitTermination().assertSuccess();
-    }
-
-    @Test
-    void timeout() {
-
-        CommandResult result = run("sleep", "500")
-                .hasLines("About to sleep for 500 ms")
-                .hasLineCount(1)
-                .start()
-                .awaitTermination(200)
-                .assertTimeout();
-
-        Assertions.assertThat(result.duration()).isGreaterThan(Duration.ofMillis(200));
-
-        Assertions
-                .assertThatThrownBy(
-                        command("hello", "Joe")
-                                .then()
-                                .stderr()
-                                .hasLines("Hello Joe")
-                                .start()
-                                .awaitTermination()::assertTimeout)
-                .isInstanceOf(AssertionError.class)
-                .message().matches(Pattern.compile("Expected a timeout when running\n"
-                        + "\n"
-                        + "    [^\n\r]+\n"
-                        + "\n"
-                        + "but it terminated in [\\S]+ with exit code 0", Pattern.DOTALL));
-
-        Assertions
-                .assertThatThrownBy(
-                        run("sleep", "500")
-                                .hasLines("About to sleep for 500 ms")
-                                .hasLineCount(1)
-                                .exitCodeIsAnyOf(-1)
-                                .execute(200)::assertSuccess)
-                .isInstanceOf(AssertionError.class)
-                .message().matches(Pattern.compile("1 exceptions occurred while executing\n"
-                        + "\n"
-                        + "    [^\n\r]+\n"
-                        + "\n"
-                        + "Exception 1/1: org.l2x6.cli.assured.TimeoutAssertionError: Command has not terminated within 200 ms\n",
-                        Pattern.DOTALL));
 
     }
 

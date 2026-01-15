@@ -5,6 +5,7 @@
 package org.l2x6.cli.assured;
 
 import java.time.Duration;
+import java.util.Objects;
 import org.l2x6.cli.assured.CliAssertUtils.ExcludeFromJacocoGeneratedReport;
 import org.l2x6.cli.assured.asserts.Assert;
 import org.l2x6.cli.assured.asserts.ExitCodeAssert;
@@ -16,7 +17,7 @@ import org.l2x6.cli.assured.asserts.ExitCodeAssert;
  * @since  0.0.1
  * @author <a href="https://github.com/ppalaga">Peter Palaga</a>
  */
-public class CommandProcess {
+public class CommandProcess implements AutoCloseable {
 
     private final String cmdString;
     private final Process process;
@@ -24,10 +25,13 @@ public class CommandProcess {
     private final InputProducer stdin;
     private final OutputConsumer out;
     private final OutputConsumer err;
+    private final boolean autoCloseForcibly;
+    private final Duration autoCloseTimeout;
 
     private volatile boolean closed = false;
     private final Assert asserts;
     private final ExitCodeAssert exitCodeAssert;
+    private long pid;
 
     CommandProcess(
             String cmdArrayString,
@@ -36,15 +40,20 @@ public class CommandProcess {
             ExitCodeAssert exitCodeAssert,
             InputProducer stdin,
             OutputConsumer out,
-            OutputConsumer err) {
+            OutputConsumer err,
+            boolean autoCloseForcibly,
+            Duration autoCloseTimeout) {
         super();
-        this.cmdString = cmdArrayString;
-        this.process = process;
-        this.asserts = asserts;
-        this.exitCodeAssert = exitCodeAssert;
+        this.cmdString = Objects.requireNonNull(cmdArrayString, "cmdArrayString");
+        this.process = Objects.requireNonNull(process, "process");
+        this.asserts = Objects.requireNonNull(asserts, "asserts");
+        this.exitCodeAssert = Objects.requireNonNull(exitCodeAssert, "exitCodeAssert");
         this.stdin = stdin;
-        this.out = out;
-        this.err = err;
+        this.out = Objects.requireNonNull(out, "out");
+        this.err = Objects.requireNonNull(err, "err");
+        this.autoCloseForcibly = autoCloseForcibly;
+        this.autoCloseTimeout = autoCloseTimeout;
+        this.pid = PidLookup.getPid(process);
         this.shutDownHook = new Thread(new Runnable() {
             @Override
             public void run() {
@@ -183,6 +192,74 @@ public class CommandProcess {
 
     public String toString() {
         return cmdString;
+    }
+
+    /**
+     * Kills the underlying process and awaits its termination.
+     * The default behavior is to call {@link #kill(boolean) kill(false)} and {@link #awaitTermination()} without timeout.
+     * You can change this by calling {@link CommandSpec#autoCloseForcibly()} and/or
+     * {@link CommandSpec#autoCloseTimeout(Duration)}.
+     * <p>
+     * Use {@code try(CommandProcess proc = ...)} only if you do not call any of
+     * {@link CommandProcess#awaitTermination() awaitTermination(*)} methods direcly or
+     * indirectly via {@link CommandSpec#execute() CommandSpec.execute(*)},
+     * {@link ExpectationsSpec#execute() ExpectationsSpec.execute(*)} or
+     * {@link StreamExpectationsSpec#execute() StreamExpectationsSpec.execute(*)}.
+     * <p>
+     * An example of a situation in which you should definitely use {@code try(CommandProcess proc = ...)}
+     * is when you perform some interactive actions against a process that won't exit by itself:
+     *
+     * <pre>
+     * <code>
+     * CountDownLatch started = new CountDownLatch(1);
+     * try (CommandProcess mvn = CliAssured
+     *         .command("mvn", "quarkus:dev")
+     *         .cd(..)
+     *         .then()
+     *         .stdout()
+     *         .log(line -> {
+     *             if (line.contains("Installed features: [")) {
+     *                 started.countDown();
+     *             }
+     *         })
+     *         .start()) {
+     *
+     *     started.await(20, TimeUnit.SECONDS);
+     *
+     *     // Do some testing here, e.g. send a request
+     *     RestAssured.get("http:/localhost:8080/rest")
+     *         .then()
+     *         .statusCode(200);
+     *
+     * } // mvn process is auto-closed here even if some of the assertions failed
+     * </code>
+     * </pre>
+     *
+     * @since 0.0.1
+     */
+    @Override
+    public void close() {
+        kill(autoCloseForcibly);
+        if (autoCloseTimeout != null) {
+            awaitTermination(autoCloseTimeout);
+        } else {
+            awaitTermination();
+        }
+    }
+
+    /**
+     * @return                               the process ID (PID) of the underlying operating system process
+     * @throws UnsupportedOperationException on Java versions lower than 9
+     * @since                                0.0.1
+     */
+    @ExcludeFromJacocoGeneratedReport
+    public long pid() {
+        if (pid < 0) {
+            throw new UnsupportedOperationException(
+                    Process.class.getName() + ".pid() is not supported before Java version 9; current Java version: "
+                            + System.getProperty("java.version"));
+        }
+        return pid;
     }
 
 }
