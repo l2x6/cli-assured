@@ -373,7 +373,16 @@ public class Mvn {
      * @return      a new {@link CommandSpec} with its executable path and arguments set
      */
     public CommandSpec args(String... args) {
-        return CliAssured.command(executable(), args);
+        final String exe = executable();
+        if (exe.endsWith(".cmd")) {
+            /* Windows call via cmd.exe */
+            return CliAssured.command("cmd.exe")
+                    .args("/c", exe)
+                    .args(args);
+        } else {
+            /* Linux or Mac - call mvn directly */
+            return CliAssured.command(exe, args);
+        }
     }
 
     @ExcludeFromJacocoGeneratedReport

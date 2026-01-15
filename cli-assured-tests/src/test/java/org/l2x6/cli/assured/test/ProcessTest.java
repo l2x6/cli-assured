@@ -25,12 +25,12 @@ public class ProcessTest {
 
     @Test
     void killForcibly() {
-        assertKill(true, 137);
+        assertKill(true, false, 137);
     }
 
     @Test
     void killGently() {
-        assertKill(false, 143);
+        assertKill(false, false, 143);
     }
 
     @Test
@@ -110,7 +110,7 @@ public class ProcessTest {
                 .assertSuccess();
     }
 
-    static void assertKill(boolean forcibly, int exitCodeLinux) {
+    static void assertKill(boolean forcibly, boolean withDescendants, int exitCodeLinux) {
         List<String> lines = Collections.synchronizedList(new ArrayList<>());
         CommandProcess proc = JavaTest.run("sleep", "500")
                 .log(lines::add)
@@ -119,8 +119,8 @@ public class ProcessTest {
 
         Awaitility.waitAtMost(10, TimeUnit.SECONDS)
                 .until(() -> lines.size() == 1 && lines.contains("About to sleep for 500 ms"));
-        proc.kill(forcibly);
-        proc.kill(forcibly);
+        proc.kill(forcibly, withDescendants);
+        proc.kill(forcibly, withDescendants);
 
         proc.awaitTermination().assertSuccess();
     }

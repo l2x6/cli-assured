@@ -132,7 +132,7 @@ public class StdinTest {
             Thread.sleep(50);
         }
 
-        p.kill(true);
+        p.kill(true, false);
 
         pipe.add("line 2\n");
 

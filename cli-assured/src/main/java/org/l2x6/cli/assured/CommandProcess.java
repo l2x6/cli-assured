@@ -6,6 +6,7 @@ package org.l2x6.cli.assured;
 
 import java.time.Duration;
 import java.util.Objects;
+import java.util.stream.LongStream;
 import org.l2x6.cli.assured.CliAssertUtils.ExcludeFromJacocoGeneratedReport;
 import org.l2x6.cli.assured.asserts.Assert;
 import org.l2x6.cli.assured.asserts.ExitCodeAssert;
@@ -26,6 +27,7 @@ public class CommandProcess implements AutoCloseable {
     private final OutputConsumer out;
     private final OutputConsumer err;
     private final boolean autoCloseForcibly;
+    private final boolean autoCloseWithDescendants;
     private final Duration autoCloseTimeout;
     private final long startMillisTime;
 
@@ -43,6 +45,7 @@ public class CommandProcess implements AutoCloseable {
             OutputConsumer out,
             OutputConsumer err,
             boolean autoCloseForcibly,
+            boolean autoCloseWithDescendants,
             Duration autoCloseTimeout,
             long startMillisTime) {
         super();
@@ -54,13 +57,14 @@ public class CommandProcess implements AutoCloseable {
         this.out = Objects.requireNonNull(out, "out");
         this.err = Objects.requireNonNull(err, "err");
         this.autoCloseForcibly = autoCloseForcibly;
+        this.autoCloseWithDescendants = autoCloseWithDescendants;
         this.autoCloseTimeout = autoCloseTimeout;
         this.startMillisTime = startMillisTime;
         this.pid = ProcessUtils.getPid(process);
         this.shutDownHook = new Thread(new Runnable() {
             @Override
             public void run() {
-                kill(false);
+                kill(autoCloseForcibly, autoCloseWithDescendants);
             }
         });
         Runtime.getRuntime().addShutdownHook(shutDownHook);
@@ -74,12 +78,16 @@ public class CommandProcess implements AutoCloseable {
      * On Java version 9 or newer, if {@code forcibly} is {@code true}, then also all descendant processes are killed
      * via {@code java.lang.ProcessHandle.destroyForcibly()}.
      *
-     * @param forcibly if {@code true} will call {@link Process#destroyForcibly()}; otherwise will call
-     *                 {@link Process#destroy()}
-     * @since          0.0.1
+     * @param forcibly        if {@code true} will call {@link Process#destroyForcibly()}; otherwise will call
+     *                        {@link Process#destroy()}
+     * @param withDescendants if {@code true} and on Java 9+ then {@link ProcessHandle#destroyForcibly()} or
+     *                        {@link ProcessHandle#destroy()} will be called also for descendant processes; otherwise
+     *                        descendant processes will not be destroyed
+     *                        {@link Process#destroy()}
+     * @since                 0.0.1
      */
     @ExcludeFromJacocoGeneratedReport
-    public void kill(boolean forcibly) {
+    public void kill(boolean forcibly, boolean withDescendants) {
         try {
             Runtime.getRuntime().removeShutdownHook(shutDownHook);
         } catch (Exception ignored) {
@@ -95,8 +103,7 @@ public class CommandProcess implements AutoCloseable {
             }
         }
 
-        ProcessUtils.kill(process, forcibly);
-
+        ProcessUtils.kill(process, forcibly, withDescendants);
     }
 
     /**
@@ -244,7 +251,7 @@ public class CommandProcess implements AutoCloseable {
      */
     @Override
     public void close() {
-        kill(autoCloseForcibly);
+        kill(autoCloseForcibly, autoCloseWithDescendants);
         if (autoCloseTimeout != null) {
             awaitTermination(autoCloseTimeout);
         } else {
@@ -267,4 +274,25 @@ public class CommandProcess implements AutoCloseable {
         return pid;
     }
 
+    /**
+     * @return                               A {@link LongStream} containing PIDs of direct child processes of this
+     *                                       {@link CommandProcess}
+     * @throws UnsupportedOperationException on Java versions lower than 9
+     * @since                                0.0.1
+     */
+    @ExcludeFromJacocoGeneratedReport
+    public LongStream children() {
+        return ProcessUtils.children(process);
+    }
+
+    /**
+     * @return                               A {@link LongStream} containing PIDs of direct and indirect child processes of
+     *                                       this {@link CommandProcess}
+     * @throws UnsupportedOperationException on Java versions lower than 9
+     * @since                                0.0.1
+     */
+    @ExcludeFromJacocoGeneratedReport
+    public LongStream descendants() {
+        return ProcessUtils.descendants(process);
+    }
 }

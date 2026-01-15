@@ -4,6 +4,7 @@
  */
 package org.l2x6.cli.assured;
 
+import java.util.stream.LongStream;
 import org.l2x6.cli.assured.CliAssertUtils.ExcludeFromJacocoGeneratedReport;
 import org.slf4j.LoggerFactory;
 
@@ -19,18 +20,34 @@ class ProcessUtils {
     }
 
     @ExcludeFromJacocoGeneratedReport
-    static void kill(Process process, boolean forcibly) {
+    static void kill(Process process, boolean forcibly, boolean withDescendants) {
         if (process.isAlive()) {
             if (forcibly) {
                 process.destroyForcibly();
-                LoggerFactory
-                        .getLogger(ProcessUtils.class)
-                        .warn(
-                                "Killing a process forcibly on Java 8 or older will not kill its descendant processes. Use Java 9+ to ensure that also descendant processes are killed");
             } else {
                 process.destroy();
             }
+            if (withDescendants) {
+                LoggerFactory
+                        .getLogger(ProcessUtils.class)
+                        .warn(
+                                "Killing a process on Java 8 or older will not kill its descendant processes. Use Java 9+ to ensure that also descendant processes are killed");
+            }
         }
+    }
+
+    @ExcludeFromJacocoGeneratedReport
+    static LongStream children(Process process) {
+        throw new UnsupportedOperationException(
+                Process.class.getName() + ".children() is not supported before Java version 9; current Java version: "
+                        + System.getProperty("java.version"));
+    }
+
+    @ExcludeFromJacocoGeneratedReport
+    static LongStream descendants(Process process) {
+        throw new UnsupportedOperationException(
+                Process.class.getName() + ".descendants() is not supported before Java version 9; current Java version: "
+                        + System.getProperty("java.version"));
     }
 
 }
