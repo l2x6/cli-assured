@@ -53,7 +53,7 @@
         <assertj.version>3.27.6</assertj.version>
         <awaitility.version>4.3.0</awaitility.version>
         <quarkus.version>3.30.6</quarkus.version>
-        <rest-assured.version>5.5.6</rest-assured.version>
+        <rest-assured.version>6.0.0</rest-assured.version>
 
         <!-- Plugins and their dependencies -->
         <central-publishing-maven-plugin.version>0.10.0</central-publishing-maven-plugin.version>
