@@ -50,10 +50,12 @@ public class QuarkusDevModeTest {
         mvn
                 .args(
                         "-ntp",
-                        "io.quarkus.platform:quarkus-maven-plugin:" + quarkusVersion + ":create",
+                        "io.quarkus:quarkus-maven-plugin:" + quarkusVersion + ":create",
                         "-DprojectGroupId=org.l2x6.cli-assured",
                         "-DprojectArtifactId=" + artifactId,
-                        "-DclassName=org.l2x6.cli.assured.dev.Hello")
+                        "-DclassName=org.l2x6.cli.assured.dev.Hello",
+                        "-DplatformGroupId=io.quarkus",
+                        "-DplatformVersion=" + quarkusVersion)
                 .cd(tempProject.getParent())
                 .then()
                 .stdout().log()
