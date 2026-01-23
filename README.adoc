@@ -6,7 +6,8 @@ Central]]
 
 A Java DSL for testing command line applications.
 
-Requires Java 8+
+Requires Java 8+ for basic usage,
+but Java 9+ is better if you need newer Process API for accessing PID or child processes.
 
 == Maven coordinates
 
@@ -180,7 +181,7 @@ Or alternatively,
 
 [source,java]
 ----
-Mvn.fromMvnw(Paths.get(".")) // Find .mvn/wrapper/maven-wrapper.properties
+Mvn.fromMvnw() // Find .mvn/wrapper/maven-wrapper.properties
                              // under the nearest ancestor,
                              // extract the distribution URL from there
                              // find Maven version from the distribution URL
