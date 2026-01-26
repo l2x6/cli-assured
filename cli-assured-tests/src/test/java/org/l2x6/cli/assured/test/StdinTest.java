@@ -5,9 +5,11 @@
 package org.l2x6.cli.assured.test;
 
 import java.io.IOException;
+import java.io.OutputStream;
 import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Paths;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -16,8 +18,14 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeoutException;
+import java.util.function.Consumer;
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.DisabledOnOs;
+import org.junit.jupiter.api.condition.OS;
+import org.l2x6.cli.assured.Await;
+import org.l2x6.cli.assured.Await.LineAwait;
+import org.l2x6.cli.assured.CliAssured;
 import org.l2x6.cli.assured.CommandProcess;
 import org.l2x6.cli.assured.CommandResult;
 import org.l2x6.cli.assured.CommandSpec;
@@ -147,4 +155,71 @@ public class StdinTest {
         Assertions.assertThat(result.byteCountStdout()).isEqualTo(7);
     }
 
+    @Test
+    @DisabledOnOs(OS.WINDOWS)
+    void readPromptAwait() {
+        // @formatter:off
+        LineAwait<String> awaitName = Await.line("name:");
+        LineAwait<String> awaitAge = Await.line("age:");
+        Consumer<OutputStream> stdin = out -> {
+            try {
+                awaitName.await(Duration.ofSeconds(5));
+                out.write("Douglas Adams\n".getBytes(StandardCharsets.UTF_8));
+                out.flush();
+                awaitAge.await(Duration.ofSeconds(6));
+                out.write("42\n".getBytes(StandardCharsets.UTF_8));
+                out.close();
+            } catch (IOException e) {
+                throw new UncheckedIOException(e);
+            }
+        };
+        CliAssured
+                .given()
+                    .stdin(stdin)
+                .when()
+                    .command(
+                            "bash",
+                            "-c",
+                            "echo 'name:'; read name; echo 'age:'; read age; echo \"name: $name, age: $age\"")
+                .then()
+                    .stdout()
+                        .log()
+                        .await(awaitName)
+                        .await(awaitAge)
+                        .hasLines("name: Douglas Adams, age: 42")
+                .execute()
+                .assertSuccess();
+        // @formatter:on
+    }
+
+    @Test
+    @DisabledOnOs(OS.WINDOWS)
+    void readPrompt() {
+        // @formatter:off
+        Consumer<OutputStream> stdin = out -> {
+            try {
+                out.write("Douglas Adams\n".getBytes(StandardCharsets.UTF_8));
+                out.flush();
+                out.write("42\n".getBytes(StandardCharsets.UTF_8));
+                out.close();
+            } catch (IOException e) {
+                throw new UncheckedIOException(e);
+            }
+        };
+        CliAssured
+                .given()
+                    .stdin(stdin)
+                .when()
+                    .command(
+                            "bash",
+                            "-c",
+                            "echo 'name:'; read name; echo 'age:'; read age; echo \"name: $name, age: $age\"")
+                .then()
+                    .stdout()
+                        .log()
+                        .hasLines("name: Douglas Adams, age: 42")
+                .execute()
+                .assertSuccess();
+        // @formatter:on
+    }
 }

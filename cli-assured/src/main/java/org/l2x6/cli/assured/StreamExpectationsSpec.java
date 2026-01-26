@@ -523,16 +523,71 @@ public class StreamExpectationsSpec {
     }
 
     /**
-     * Log each line of the output using the given {@code logger}. Note that the {@link Consumer#accept(Object)}
+     * Pass each line of the output to the given {@code logger}. Note that the {@link Consumer#accept(Object)}
      * method will be called from an output consuming thread.
+     * Useful for logging to a custom logger or logging on a custom logger level,
+     * e.g. {@code stdout().lines(myLogger::warn)}
+     * <p>
+     * This method is an alias of {@link #lines(Consumer)} that was added to improve the discoverability for the logging
+     * use case.
      *
      * @param  logger a {@link Consumer} to notify about every new line.
      * @return        an adjusted copy of this {@link StreamExpectationsSpec}
      * @since         0.0.1
      */
     public StreamExpectationsSpec log(Consumer<String> logger) {
+        return lines(logger);
+    }
+
+    /**
+     * An alias of {@link #lines(Consumer)} that was added to improve the discoverability for the await
+     * use case.
+     * <p>
+     * Example:
+     *
+     * <pre>{@code
+     * LineAwait<Integer> await = Await
+     *         .lineMatching("listening on port: (\\d+)")
+     *         .map(Integer::parseInt);
+     * try (CommandProcess proc = CliAssured.command(...)
+     *         .then()
+     *             .stdout()
+     *                 .await(await)
+     *         .start()) {
+     *
+     *     final int port = await.await(Duration.ofSeconds(10));
+     *     // Connect and test
+     *     RestAssured.get("http://localhost:" + port)
+     *             .then()
+     *             .statusCode(200);
+     * } // CommandProcess proc gets auto-closed here
+     * }</pre>
+     *
+     * }
+     * </pre>
+     *
+     * @param  consumer a {@link Consumer} to notify about every new line.
+     * @return          an adjusted copy of this {@link StreamExpectationsSpec}
+     * @since           0.0.1
+     */
+    public StreamExpectationsSpec await(Consumer<String> consumer) {
+        return lines(consumer);
+    }
+
+    /**
+     * Pass each line of the output to the given {@code consumer}.
+     * <p>
+     * Note that the {@link Consumer#accept(Object)} method will be called from an output consuming thread.
+     *
+     * @param  consumer a {@link Consumer} to notify about every new line.
+     * @return          an adjusted copy of this {@link StreamExpectationsSpec}
+     * @since           0.0.1
+     * @see             #log(Consumer)
+     * @see             #await(Consumer)
+     */
+    public StreamExpectationsSpec lines(Consumer<String> consumer) {
         return new StreamExpectationsSpec(expectations, stream,
-                CliAssertUtils.join(this.asserts, LineAssert.log(stream, logger)),
+                CliAssertUtils.join(this.asserts, LineAssert.log(stream, consumer)),
                 byteCountAssert, charset, redirect, capture, threadIndex);
     }
 
