@@ -372,6 +372,7 @@ public class Mvn {
      * @param  args the Maven command line arguments to set
      * @return      a new {@link CommandSpec} with its executable path and arguments set
      */
+    @ExcludeFromJacocoGeneratedReport
     public CommandSpec args(String... args) {
         final String exe = executable();
         if (exe.endsWith(".cmd")) {

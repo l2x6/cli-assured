@@ -348,6 +348,7 @@ public class CommandSpec {
      * @return an adjusted copy of this {@link CommandSpec}
      * @since  0.0.1
      */
+    @ExcludeFromJacocoGeneratedReport
     public CommandSpec autoCloseWithoutDescendants() {
         return new CommandSpec(executable, arguments, env, cd, expectations, stderrToStdout,
                 stdin,

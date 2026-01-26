@@ -47,13 +47,13 @@ CliAssured
             .hasLineCount(1)
             .redirect(Path.of("hello.txt")) // redirect the output to hello.txt
         .exitCodeIs(0) // could be omitted as exit code 0 is enforced by default
-    .execute()
+    .execute() // start the process and await its termination
     .assertSuccess(); // Report all assertion errors
 ----
 
 === Given-when-then
 
-If you are a fan of Behavior-Driven testing, there is some syntactic sugar for you:
+If you are a fan of Behavior-Driven testing, CLI Assert has some syntactic sugar for you:
 
 [source,java]
 ----
@@ -80,6 +80,8 @@ CliAssured
 
 === `stdin`
 
+You can pass a string or file to `stdin` of the command under test:
+
 [source,java]
 ----
 import org.l2x6.cli.assured.CliAssured;
@@ -87,6 +89,33 @@ import org.l2x6.cli.assured.CliAssured;
 CliAssured
     .given()
         .stdin("Hello world!")
+        // or alternatively:
+        // .stdin(Path.of("my-input-file.txt"))
+    .when()
+        .command("cat")
+    .then()
+        .stdout()
+            .hasLines("Hello world!")
+            .hasLineCount(1)
+    .execute()
+    .assertSuccess();
+----
+
+You can also write directly to the raw `OutputStream` representing the `stdin` of the command under test:
+
+[source,java]
+----
+import org.l2x6.cli.assured.CliAssured;
+
+CliAssured
+    .given()
+        .stdin((OutputStream stdin) -> {
+            try {
+                stdin.write("Hello world!".getBytes(StandardCharsets.UTF_8));
+            } catch (IOException e) {
+                throw new UncheckedIOException(e);
+            }
+        })
     .when()
         .command("cat")
     .then()
@@ -143,7 +172,74 @@ CliAssured
     .assertSuccess();
 ----
 
+=== Test long running processes
+
+As long as the application under test is expected to terminate by itself,
+it is fine to use `.execute().assertSuccess()` as we did in several examples above.
+
+On the other hand, when testing some long running process, such as application server or a docker container,
+you typically want to
+
+* Run the command starting the service
+* Await it being up and running
+* Perform some assertions
+* Shut down the service
+
+Here is a commented snippet suitable for such situations:
+
+[source,java]
+----
+import org.l2x6.cli.assured.CliAssured;
+import org.l2x6.cli.assured.CommandProcess;
+import org.l2x6.cli.assured.await.Await;
+import org.l2x6.cli.assured.await.Await.LineAwait;
+...
+
+// Define an Await that will wait for first line on stdout matching the given regular expression
+final LineAwait<Integer> awaitPort = Await
+        .lineMatching("listening on port: (\\d+)")
+        .map(Integer::parseInt); // transform the string matching the (\\d+) group to int
+
+try (CommandProcess proc = CliAssured.command(/* Your command for starting the server comes here ... */)
+            .then()
+                .stdout()
+                    .await(awaitPort)
+                    .log()
+                .stderr()
+                    .log()
+            .start()) {
+
+    // Wait at most for 10 seconds for the port message on stdout
+    int port = awaitPort.await(Duration.ofSeconds(10));
+
+    // Now the server has started - we can perform some tests requiring the port
+    RestAssured.get("http://localhost:" + port)
+            .then()
+            .statusCode(200);
+
+} // proc gets auto-closed here
+----
+
+The default auto-close behavior of `CommandProcess` can be characterized as follows:
+
+* `java.lang.Process.destroy()` is called on the main process
+* On Java 9+, any descendant processes returned by `process.toHandle().descendants()` are also closed
+  using `java.lang.ProcessHandle.destroy()`
+* On Java 8, only the main process is destroyed
+
+Use the following methods to customize the auto-closing behavior of
+`org.l2x6.cli.assured.CommandProcess`:
+
+* `CliAssured.command(...).autoCloseWithoutDescendants()` to avoid closing descendant processes
+* `CliAssured.command(...).autoCloseForcibly()` to close the main and descendant processes using
+  `java.lang.Process.destroyForcibly()` and `java.lang.ProcessHandle.destroyForcibly()` respectively
+* `CliAssured.command(...).autoCloseTimeout(Duration)` to wait at most for the specified `Duration` after `destroy()`
+  or `destroyForcibly()` was called on main process and possibly on its descendant processes until the main process
+  reports its state as terminated.
+
 == `mvn-assured` - a Java DSL for invoking an testing Maven
+
+`mvn-assured` is a sibling of CLI assured for installing and invoking Maven.
 
 === Maven coordinates
 

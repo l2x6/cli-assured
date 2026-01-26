@@ -18,12 +18,13 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
 import java.util.UUID;
-import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import org.assertj.core.api.Assertions;
 import org.awaitility.Awaitility;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.Test;
+import org.l2x6.cli.assured.Await;
+import org.l2x6.cli.assured.Await.LineAwait;
 import org.l2x6.cli.assured.CommandProcess;
 import org.l2x6.mvn.assured.Mvn;
 import org.slf4j.Logger;
@@ -64,10 +65,8 @@ public class QuarkusDevModeTest {
                 .assertSuccess();
 
         /* Run in dev mode */
-        final CountDownLatch started = new CountDownLatch(1);
-
         final List<Long> pids = new ArrayList<>();
-
+        final LineAwait<String> await = Await.lineContaining("Installed features: [");
         try (CommandProcess mvnProcess = mvn
                 .args(
                         "-ntp",
@@ -77,16 +76,12 @@ public class QuarkusDevModeTest {
                 .cd(tempProject)
                 .then()
                 .stdout()
-                .log(line -> {
-                    log.info(line);
-                    if (line.contains("Installed features: [")) {
-                        started.countDown();
-                    }
-                })
+                .await(await)
+                .log()
                 .stderr().log()
                 .start()) {
 
-            Assertions.assertThat(started.await(60, TimeUnit.SECONDS)).isTrue();
+            await.await(Duration.ofSeconds(60));
 
             final long pid = mvnProcess.pid();
             pids.add(pid);
