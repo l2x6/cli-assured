@@ -8,12 +8,13 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.ExecutorService;
 import java.util.function.Consumer;
 import org.l2x6.cli.assured.CliAssertUtils.ExcludeFromJacocoGeneratedReport;
 import org.l2x6.cli.assured.asserts.Assert;
 
 /**
- * Hosts a thread for writing to {@code stdin} of a process.
+ * Writes to {@code stdin} of a process on a dedicated thread.
  *
  * @author <a href="https://github.com/ppalaga">Peter Palaga</a>
  * @since  0.0.1
@@ -21,21 +22,19 @@ import org.l2x6.cli.assured.asserts.Assert;
 class InputProducer implements Assert {
     private final CancellableOutputStream stdin;
     private final Consumer<OutputStream> consumer;
-    private final Thread thread;
     final List<Throwable> exceptions = new ArrayList<>();
 
-    InputProducer(OutputStream stdin, Consumer<OutputStream> consumer, int threadIndex) {
+    InputProducer(OutputStream stdin, Consumer<OutputStream> consumer) {
         this.stdin = new CancellableOutputStream(stdin);
         this.consumer = consumer;
-        this.thread = new Thread(this::run, "CliAssured-stdin-" + threadIndex);
     }
 
     void cancel() {
         stdin.cancel();
     }
 
-    void start() {
-        thread.start();
+    void start(ExecutorService executor) {
+        executor.submit(this::run);
     }
 
     @Override

@@ -30,6 +30,7 @@ public class CommandProcess implements AutoCloseable {
     private final boolean autoCloseWithDescendants;
     private final Duration autoCloseTimeout;
     private final long startMillisTime;
+    private final Runnable onClose;
 
     private volatile boolean closed = false;
     private final Assert asserts;
@@ -47,7 +48,8 @@ public class CommandProcess implements AutoCloseable {
             boolean autoCloseForcibly,
             boolean autoCloseWithDescendants,
             Duration autoCloseTimeout,
-            long startMillisTime) {
+            long startMillisTime,
+            Runnable onClose) {
         super();
         this.cmdString = Objects.requireNonNull(cmdArrayString, "cmdArrayString");
         this.process = Objects.requireNonNull(process, "process");
@@ -60,6 +62,7 @@ public class CommandProcess implements AutoCloseable {
         this.autoCloseWithDescendants = autoCloseWithDescendants;
         this.autoCloseTimeout = autoCloseTimeout;
         this.startMillisTime = startMillisTime;
+        this.onClose = onClose;
         this.pid = ProcessUtils.getPid(process);
         this.shutDownHook = new Thread(new Runnable() {
             @Override
@@ -189,6 +192,14 @@ public class CommandProcess implements AutoCloseable {
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             throw new RuntimeException("Interrupted", e);
+        }
+
+        if (onClose != null) {
+            try {
+                onClose.run();
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
         }
 
         exitCodeAssert.exitCode(exitCode);
