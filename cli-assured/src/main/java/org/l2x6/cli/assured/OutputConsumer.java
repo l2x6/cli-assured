@@ -13,30 +13,34 @@ import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.l2x6.cli.assured.CliAssertUtils.ExcludeFromJacocoGeneratedReport;
+import org.l2x6.cli.assured.StreamExpectationsSpec.ProcessOutput;
 import org.l2x6.cli.assured.StreamExpectationsSpec.Redirect;
 import org.l2x6.cli.assured.StreamExpectationsSpec.StreamExpectations;
 import org.l2x6.cli.assured.asserts.Assert;
 
 /**
- * Hosts a thread for consuming {@code stdout} or {@code stderr} of a process.
+ * Reads from {@code stdout} or {@code stderr} of a process on a dedicated thread.
  *
  * @author <a href="https://github.com/ppalaga">Peter Palaga</a>
  * @since  0.0.1
  */
 abstract class OutputConsumer implements Assert {
-    private final Thread thread;
     volatile boolean cancelled;
     final List<Throwable> exceptions = new ArrayList<>();
     final InputStream in;
     final StreamExpectationsSpec.ProcessOutput stream;
     final AtomicInteger byteCount = new AtomicInteger();
+    private final CompletableFuture<Void> status;
 
-    OutputConsumer(InputStream in, StreamExpectationsSpec.ProcessOutput stream, int threadIndex) {
-        this.thread = new Thread(this::run, "CliAssured-" + stream + "-" + threadIndex);
+    OutputConsumer(InputStream in, StreamExpectationsSpec.ProcessOutput stream) {
         this.in = in;
         this.stream = stream;
+        this.status = new CompletableFuture<Void>();
     }
 
     @Override
@@ -50,12 +54,25 @@ abstract class OutputConsumer implements Assert {
         return failureCollector;
     }
 
-    void start() {
-        thread.start();
+    void start(ExecutorService executor) {
+        executor.submit(this::runInternal);
     }
 
+    @ExcludeFromJacocoGeneratedReport
     void join() throws InterruptedException {
-        thread.join();
+        try {
+            status.get();
+        } catch (ExecutionException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    private void runInternal() {
+        try {
+            run();
+        } finally {
+            status.complete(null);
+        }
     }
 
     abstract void run();
@@ -76,8 +93,8 @@ abstract class OutputConsumer implements Assert {
      */
     static class DevNull extends OutputConsumer {
 
-        public DevNull(InputStream in, StreamExpectationsSpec.ProcessOutput stream, int threadIndex) {
-            super(in, stream, threadIndex);
+        public DevNull(InputStream in, ProcessOutput stream) {
+            super(in, stream);
         }
 
         @Override
@@ -109,7 +126,7 @@ abstract class OutputConsumer implements Assert {
         private final StreamExpectations streamExpectations;
 
         OutputAsserts(InputStream inputStream, StreamExpectations streamExpectations) {
-            super(inputStream, streamExpectations.stream, streamExpectations.threadIndex);
+            super(inputStream, streamExpectations.stream);
             this.streamExpectations = Objects.requireNonNull(streamExpectations, "streamExpectations");
         }
 

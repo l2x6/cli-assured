@@ -22,7 +22,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
-import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.ExecutorService;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 import java.util.regex.Pattern;
@@ -41,7 +41,6 @@ import org.slf4j.LoggerFactory;
 public class CommandSpec {
     private static final Logger log = LoggerFactory.getLogger(CommandSpec.class);
     private static final Pattern WS_PATTERN = Pattern.compile("\\s");
-    private static AtomicInteger threadCounter = new AtomicInteger();
 
     private final Supplier<String> executable;
     private final List<String> arguments;
@@ -50,10 +49,10 @@ public class CommandSpec {
     private final ExpectationsSpec expectations;
     private final boolean stderrToStdout;
     private final Consumer<OutputStream> stdin;
-    private final int threadIndex;
     private final boolean autoCloseForcibly;
     private final boolean autoCloseWithDescendants;
     private final Duration autoCloseTimeout;
+    private final Supplier<ExecutorService> threadPool;
 
     CommandSpec(
             Supplier<String> executable,
@@ -63,8 +62,8 @@ public class CommandSpec {
         this.env = Collections.emptyMap();
         this.cd = Paths.get(".").toAbsolutePath().normalize();
         this.stderrToStdout = false;
-        this.threadIndex = threadCounter.getAndIncrement();
-        this.expectations = new ExpectationsSpec(this, stderrToStdout, threadIndex);
+        this.threadPool = CliAssured.globalThreadPool()::getOrCreateExecutorService;
+        this.expectations = new ExpectationsSpec(this, stderrToStdout);
         this.stdin = null;
         this.autoCloseForcibly = false;
         this.autoCloseWithDescendants = true;
@@ -82,7 +81,7 @@ public class CommandSpec {
             boolean autoCloseForcibly,
             boolean autoCloseWithDescendants,
             Duration autoCloseTimeout,
-            int threadIndex) {
+            Supplier<ExecutorService> executor) {
         this.executable = executable;
         this.arguments = arguments;
         this.env = Objects.requireNonNull(environment, "environment");
@@ -90,10 +89,10 @@ public class CommandSpec {
         this.stderrToStdout = stderrToStdout;
         this.expectations = expectations;
         this.stdin = stdin;
-        this.threadIndex = threadIndex;
         this.autoCloseForcibly = autoCloseForcibly;
         this.autoCloseWithDescendants = autoCloseWithDescendants;
         this.autoCloseTimeout = autoCloseTimeout;
+        this.threadPool = executor;
     }
 
     /**
@@ -109,7 +108,7 @@ public class CommandSpec {
      */
     public CommandSpec command(String executable, String... arguments) {
         return new CommandSpec(() -> executable, CliAssertUtils.join(this.arguments, arguments), env, cd, expectations,
-                stderrToStdout, stdin, autoCloseForcibly, autoCloseWithDescendants, autoCloseTimeout, threadIndex);
+                stderrToStdout, stdin, autoCloseForcibly, autoCloseWithDescendants, autoCloseTimeout, threadPool);
     }
 
     /**
@@ -121,7 +120,7 @@ public class CommandSpec {
      */
     public CommandSpec executable(String executable) {
         return new CommandSpec(() -> executable, arguments, env, cd, expectations, stderrToStdout, stdin, autoCloseForcibly,
-                autoCloseWithDescendants, autoCloseTimeout, threadIndex);
+                autoCloseWithDescendants, autoCloseTimeout, threadPool);
     }
 
     /**
@@ -133,7 +132,7 @@ public class CommandSpec {
     public CommandSpec java() {
         final String exec = javaExecutable();
         return new CommandSpec(() -> exec, arguments, env, cd, expectations, stderrToStdout, stdin, autoCloseForcibly,
-                autoCloseWithDescendants, autoCloseTimeout, threadIndex);
+                autoCloseWithDescendants, autoCloseTimeout, threadPool);
     }
 
     @ExcludeFromJacocoGeneratedReport
@@ -160,7 +159,7 @@ public class CommandSpec {
      */
     public CommandSpec arg(String arg) {
         return new CommandSpec(executable, CliAssertUtils.join(this.arguments, arg), env, cd, expectations, stderrToStdout,
-                stdin, autoCloseForcibly, autoCloseWithDescendants, autoCloseTimeout, threadIndex);
+                stdin, autoCloseForcibly, autoCloseWithDescendants, autoCloseTimeout, threadPool);
     }
 
     /**
@@ -172,7 +171,7 @@ public class CommandSpec {
      */
     public CommandSpec args(String... args) {
         return new CommandSpec(executable, CliAssertUtils.join(this.arguments, args), env, cd, expectations, stderrToStdout,
-                stdin, autoCloseForcibly, autoCloseWithDescendants, autoCloseTimeout, threadIndex);
+                stdin, autoCloseForcibly, autoCloseWithDescendants, autoCloseTimeout, threadPool);
     }
 
     /**
@@ -184,7 +183,7 @@ public class CommandSpec {
      */
     public CommandSpec args(Collection<String> arguments) {
         return new CommandSpec(executable, CliAssertUtils.join(this.arguments, arguments), env, cd, expectations,
-                stderrToStdout, stdin, autoCloseForcibly, autoCloseWithDescendants, autoCloseTimeout, threadIndex);
+                stderrToStdout, stdin, autoCloseForcibly, autoCloseWithDescendants, autoCloseTimeout, threadPool);
     }
 
     /**
@@ -198,7 +197,7 @@ public class CommandSpec {
         Map<String, String> e = new LinkedHashMap<>(this.env);
         e.putAll(env);
         return new CommandSpec(executable, arguments, Collections.unmodifiableMap(e), cd, expectations, stderrToStdout, stdin,
-                autoCloseForcibly, autoCloseWithDescendants, autoCloseTimeout, threadIndex);
+                autoCloseForcibly, autoCloseWithDescendants, autoCloseTimeout, threadPool);
     }
 
     /**
@@ -224,7 +223,7 @@ public class CommandSpec {
             e.put(more[i++], more[i++]);
         }
         return new CommandSpec(executable, arguments, Collections.unmodifiableMap(e), cd, expectations, stderrToStdout, stdin,
-                autoCloseForcibly, autoCloseWithDescendants, autoCloseTimeout, threadIndex);
+                autoCloseForcibly, autoCloseWithDescendants, autoCloseTimeout, threadPool);
     }
 
     /**
@@ -236,7 +235,7 @@ public class CommandSpec {
      */
     public CommandSpec cd(Path workDirectory) {
         return new CommandSpec(executable, arguments, env, workDirectory, expectations, stderrToStdout, stdin,
-                autoCloseForcibly, autoCloseWithDescendants, autoCloseTimeout, threadIndex);
+                autoCloseForcibly, autoCloseWithDescendants, autoCloseTimeout, threadPool);
     }
 
     /**
@@ -248,7 +247,7 @@ public class CommandSpec {
     public CommandSpec stderrToStdout() {
         return new CommandSpec(executable, arguments, env, cd, expectations, true, stdin, autoCloseForcibly,
                 autoCloseWithDescendants,
-                autoCloseTimeout, threadIndex);
+                autoCloseTimeout, threadPool);
     }
 
     /**
@@ -282,7 +281,7 @@ public class CommandSpec {
                     + ". You may want to keep ony one stdin(...) call for the given CommandSpec chain");
         }
         return new CommandSpec(executable, arguments, env, cd, expectations, stderrToStdout, stdin, autoCloseForcibly,
-                autoCloseWithDescendants, autoCloseTimeout, threadIndex);
+                autoCloseWithDescendants, autoCloseTimeout, threadPool);
     }
 
     /**
@@ -301,7 +300,7 @@ public class CommandSpec {
         }
         return new CommandSpec(executable, arguments, env, cd, expectations, stderrToStdout,
                 new StringPipe(stdin),
-                autoCloseForcibly, autoCloseWithDescendants, autoCloseTimeout, threadIndex);
+                autoCloseForcibly, autoCloseWithDescendants, autoCloseTimeout, threadPool);
     }
 
     /**
@@ -320,7 +319,7 @@ public class CommandSpec {
         }
         return new CommandSpec(executable, arguments, env, cd, expectations, stderrToStdout,
                 new FilePipe(file),
-                autoCloseForcibly, autoCloseWithDescendants, autoCloseTimeout, threadIndex);
+                autoCloseForcibly, autoCloseWithDescendants, autoCloseTimeout, threadPool);
     }
 
     /**
@@ -335,7 +334,7 @@ public class CommandSpec {
     public CommandSpec autoCloseForcibly() {
         return new CommandSpec(executable, arguments, env, cd, expectations, stderrToStdout,
                 stdin,
-                true, autoCloseWithDescendants, autoCloseTimeout, threadIndex);
+                true, autoCloseWithDescendants, autoCloseTimeout, threadPool);
     }
 
     /**
@@ -352,7 +351,7 @@ public class CommandSpec {
     public CommandSpec autoCloseWithoutDescendants() {
         return new CommandSpec(executable, arguments, env, cd, expectations, stderrToStdout,
                 stdin,
-                autoCloseForcibly, false, autoCloseTimeout, threadIndex);
+                autoCloseForcibly, false, autoCloseTimeout, threadPool);
     }
 
     /**
@@ -368,7 +367,30 @@ public class CommandSpec {
     public CommandSpec autoCloseTimeout(Duration autoCloseTimeout) {
         return new CommandSpec(executable, arguments, env, cd, expectations, stderrToStdout,
                 stdin,
-                true, autoCloseWithDescendants, autoCloseTimeout, threadIndex);
+                true, autoCloseWithDescendants, autoCloseTimeout, threadPool);
+    }
+
+    /**
+     * @return a new {@link LocalThreadPoolSpec} to configure a custom thread pool for this command instead of the
+     *         {@link CliAssured#globalThreadPool() global thread pool})
+     * @since  0.0.1
+     */
+    public LocalThreadPoolSpec threadPool() {
+        return new LocalThreadPoolSpec(this);
+    }
+
+    /**
+     * Use a custom {@link ExecutorService} instead of the {@link CliAssured#globalThreadPool() global thread pool}) for
+     * this command.
+     *
+     * @param  threadPool supplies the {@link ExecutorService} for consuming for consuming {@code stdout} and {@code stderr}
+     *                    and producing {@code stdin} of this command
+     * @return            an adjusted copy of this {@link CommandSpec}
+     * @since             0.0.1
+     */
+    public CommandSpec threadPool(Supplier<ExecutorService> threadPool) {
+        return new CommandSpec(executable, arguments, env, cd, expectations, stderrToStdout, stdin, autoCloseForcibly,
+                autoCloseWithDescendants, autoCloseTimeout, threadPool);
     }
 
     // @formatter:off
@@ -402,7 +424,7 @@ public class CommandSpec {
      * @since  0.0.1
      */
     public ExpectationsSpec then() {
-        return new ExpectationsSpec(this, stderrToStdout, threadIndex);
+        return new ExpectationsSpec(this, stderrToStdout);
     }
 
     /**
@@ -414,7 +436,7 @@ public class CommandSpec {
      */
     CommandSpec expect(ExpectationsSpec expectations) {
         return new CommandSpec(executable, arguments, env, cd, expectations, stderrToStdout, stdin, autoCloseForcibly,
-                autoCloseWithDescendants, autoCloseTimeout, threadIndex);
+                autoCloseWithDescendants, autoCloseTimeout, threadPool);
     }
 
     /**
@@ -453,8 +475,11 @@ public class CommandSpec {
         try {
             final Process process = builder.start();
             final long startMillisTime = System.currentTimeMillis();
+
+            final ExecutorService executor = threadPool.get();
+
             final OutputConsumer out = expectations.stdout.consume(process.getInputStream());
-            out.start();
+            out.start(executor);
 
             final OutputConsumer err;
             final StreamExpectations stde = expectations.stderr;
@@ -462,13 +487,13 @@ public class CommandSpec {
                 err = null;
             } else {
                 err = stde.consume(process.getErrorStream());
-                err.start();
+                err.start(executor);
             }
 
             final InputProducer stdinProcess;
             if (stdin != null) {
-                stdinProcess = new InputProducer(process.getOutputStream(), stdin, threadIndex);
-                stdinProcess.start();
+                stdinProcess = new InputProducer(process.getOutputStream(), stdin);
+                stdinProcess.start(executor);
             } else {
                 stdinProcess = null;
             }
@@ -484,7 +509,8 @@ public class CommandSpec {
                     autoCloseForcibly,
                     autoCloseWithDescendants,
                     autoCloseTimeout,
-                    startMillisTime);
+                    startMillisTime,
+                    executor::shutdown);
         } catch (IOException e) {
             throw new UncheckedIOException("Could not execute " + cmdString, e);
         }
