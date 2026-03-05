@@ -2,11 +2,11 @@
  * SPDX-FileCopyrightText: Copyright (c) 2025 CLI Assured contributors as indicated by the @author tags
  * SPDX-License-Identifier: Apache-2.0
  */
-package org.l2x6.cli.assured;
+package org.cliassured;
 
 import java.util.stream.LongStream;
 
-import org.l2x6.cli.assured.CliAssertUtils.ExcludeFromJacocoGeneratedReport;
+import org.cliassured.CliAssertUtils.ExcludeFromJacocoGeneratedReport;
 import org.slf4j.LoggerFactory;
 
 class ProcessUtils {

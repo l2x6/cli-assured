@@ -1,7 +1,7 @@
 = CLI Assured
 
-https://github.com/l2x6/cli-assured/blob/main/LICENSE[image:https://img.shields.io/github/license/l2x6/cli-assured.svg[License]]
-https://central.sonatype.com/artifact/org.l2x6.cli-assured/cli-assured[image:https://img.shields.io/maven-central/v/org.l2x6.cli-assured/cli-assured.svg[Maven
+https://github.com/cli-assured/cli-assured/blob/main/LICENSE[image:https://img.shields.io/github/license/cli-assured/cli-assured.svg[License]]
+https://central.sonatype.com/artifact/org.cli-assured/cli-assured[image:https://img.shields.io/maven-central/v/org.cli-assured/cli-assured.svg[Maven
 Central]]
 
 A Java DSL for testing command line applications.
@@ -14,13 +14,13 @@ but Java 9+ is better if you need newer Process API for accessing PID or child p
 [source,xml]
 ----
 <dependency>
-  <groupId>org.l2x6.cli-assured</groupId>
+  <groupId>org.cli-assured</groupId>
   <artifactId>cli-assured</artifactId>
   <version><!-- Use the latest --></version>
 </dependency>
 ----
 
-Find the latest version on https://central.sonatype.com/artifact/org.l2x6.cli-assured/cli-assured[Maven Central].
+Find the latest version on https://central.sonatype.com/artifact/org.cli-assured/cli-assured[Maven Central].
 
 == Usage
 
@@ -30,7 +30,7 @@ Test an executable available in `PATH`
 
 [source,java]
 ----
-import org.l2x6.cli.assured.CliAssured;
+import org.cliassured.CliAssured;
 
 CliAssured
     .command("echo", "CLI Assured rocks!")
@@ -43,7 +43,7 @@ CliAssured
             .hasLinesContaining("rocks")
             .hasLinesMatching("CLI.*rocks")
             .doesNotHaveLinesContainingCaseInsensitive("error")
-            .log() // Pass every line to org.l2x6.cli.assured.stdout logger
+            .log() // Pass every line to org.cliassured.stdout logger
             .hasLineCount(1)
             .redirect(Path.of("hello.txt")) // redirect the output to hello.txt
         .exitCodeIs(0) // could be omitted as exit code 0 is enforced by default
@@ -57,7 +57,7 @@ If you are a fan of Behavior-Driven testing, CLI Assert has some syntactic sugar
 
 [source,java]
 ----
-import org.l2x6.cli.assured.CliAssured;
+import org.cliassured.CliAssured;
 
 CliAssured
     .given()
@@ -84,7 +84,7 @@ You can pass a string or file to `stdin` of the command under test:
 
 [source,java]
 ----
-import org.l2x6.cli.assured.CliAssured;
+import org.cliassured.CliAssured;
 
 CliAssured
     .given()
@@ -105,7 +105,7 @@ You can also write directly to the raw `OutputStream` representing the `stdin` o
 
 [source,java]
 ----
-import org.l2x6.cli.assured.CliAssured;
+import org.cliassured.CliAssured;
 
 CliAssured
     .given()
@@ -134,7 +134,7 @@ For example
 
 [source,java]
 ----
-import org.l2x6.cli.assured.CliAssured;
+import org.cliassured.CliAssured;
 
 CliAssured
     .java()
@@ -159,7 +159,7 @@ it can be done as follows
 
 [source,java]
 ----
-import org.l2x6.cli.assured.CliAssured;
+import org.cliassured.CliAssured;
 ...
 
 CliAssured
@@ -189,10 +189,10 @@ Here is a commented snippet suitable for such situations:
 
 [source,java]
 ----
-import org.l2x6.cli.assured.CliAssured;
-import org.l2x6.cli.assured.CommandProcess;
-import org.l2x6.cli.assured.await.Await;
-import org.l2x6.cli.assured.await.Await.LineAwait;
+import org.cliassured.CliAssured;
+import org.cliassured.CommandProcess;
+import org.cliassured.await.Await;
+import org.cliassured.await.Await.LineAwait;
 ...
 
 // Define an Await that will wait for first line on stdout matching the given regular expression
@@ -228,7 +228,7 @@ The default auto-close behavior of `CommandProcess` can be characterized as foll
 * On Java 8, only the main process is destroyed
 
 Use the following methods to customize the auto-closing behavior of
-`org.l2x6.cli.assured.CommandProcess`:
+`org.cliassured.CommandProcess`:
 
 * `CliAssured.command(...).autoCloseWithoutDescendants()` to avoid closing descendant processes
 * `CliAssured.command(...).autoCloseForcibly()` to close the main and descendant processes using
@@ -237,22 +237,22 @@ Use the following methods to customize the auto-closing behavior of
   or `destroyForcibly()` was called on main process and possibly on its descendant processes until the main process
   reports its state as terminated.
 
-== `mvn-assured` - a Java DSL for invoking an testing Maven
+== `cli-assured-mvn` - a Java DSL for invoking an testing Maven
 
-`mvn-assured` is a sibling of CLI assured for installing and invoking Maven.
+`cli-assured-mvn` is a sibling of CLI assured for installing and invoking Maven.
 
 === Maven coordinates
 
 [source,xml]
 ----
 <dependency>
-  <groupId>org.l2x6.cli-assured</groupId>
-  <artifactId>mvn-assured</artifactId>
+  <groupId>org.cli-assured</groupId>
+  <artifactId>cli-assured-mvn</artifactId>
   <version><!-- Use the latest --></version>
 </dependency>
 ----
 
-Find the latest version on https://central.sonatype.com/artifact/org.l2x6.cli-assured/mvn-assured[Maven Central].
+Find the latest version on https://central.sonatype.com/artifact/org.cli-assured/cli-assured-mvn[Maven Central].
 
 === Usage
 
@@ -264,7 +264,7 @@ Mvn.version("3.9.11")
                        // to ~/.m2/wrapper/dists/apache-maven-3.9.11/a2d47e15
                        // much like Maven Wrapper would do.
 
-    .args("--version") // Returns an org.l2x6.cli.assured.CommandSpec,
+    .args("--version") // Returns an org.cliassured.CommandSpec,
                        // so the rest is a standard cli-assured code
     .then()
         .stdout()
@@ -285,7 +285,7 @@ Mvn.fromMvnw() // Find .mvn/wrapper/maven-wrapper.properties
 
     .installIfNeeded() // You can omit this, if you are sure mvnw was run before
 
-    .args("--version") // Returns an org.l2x6.cli.assured.CommandSpec,
+    .args("--version") // Returns an org.cliassured.CommandSpec,
                        // so the rest is a standard cli-assured code
     .then()
         .stdout()
