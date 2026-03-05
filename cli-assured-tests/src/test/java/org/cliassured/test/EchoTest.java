@@ -1,0 +1,82 @@
+/*
+ * SPDX-FileCopyrightText: Copyright (c) 2025 CLI Assured contributors as indicated by the @author tags
+ * SPDX-License-Identifier: Apache-2.0
+ */
+package org.cliassured.test;
+
+import java.util.Arrays;
+import org.cliassured.CliAssured;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.DisabledOnOs;
+import org.junit.jupiter.api.condition.OS;
+
+public class EchoTest {
+
+    @Test
+    void echo() {
+        CliAssured.command("echo", "CLI Assured rocks!")
+                .then()
+                .stdout()
+                .hasLines("CLI Assured rocks!")
+                .hasLineCount(1)
+                .log()
+                .exitCodeIsAnyOf(0)
+                .start()
+                .awaitTermination()
+                .assertSuccess();
+    }
+
+    @Test
+    void executableArg() {
+        CliAssured.given()
+                .executable("echo")
+                .arg("CLI Assured rocks!")
+                .then()
+                .stdout()
+                .hasLines("CLI Assured rocks!")
+                .hasLineCount(1)
+                .exitCodeIs(0)
+                .start()
+                .awaitTermination()
+                .assertSuccess();
+    }
+
+    @Test
+    void args() {
+        CliAssured.command("echo")
+                .args(Arrays.asList("CLI", "Assured", "rocks!"))
+                .then()
+                .stdout()
+                .hasLines("CLI Assured rocks!")
+                .hasLineCount(1)
+                .exitCodeIsAnyOf(0)
+                .start()
+                .awaitTermination()
+                .assertSuccess();
+    }
+
+    @Test
+    @DisabledOnOs(OS.WINDOWS)
+    void echoEnvVarStderr() {
+        // @formatter:off
+        CliAssured
+                .given()
+                    .env("MESSAGE", "CLI Assured rocks!")
+                .when()
+                    .command("sh", "-c",
+                                "echo $MESSAGE;"
+                              + "echo Really! 1>&2")
+                .then()
+                    .stdout()
+                        .hasLines("CLI Assured rocks!")
+                        .hasLineCount(1)
+                    .stderr()
+                        .hasLines("Really!")
+                        .hasLineCount(1)
+                    .exitCodeIsAnyOf(0)
+                .execute()
+                .assertSuccess();
+        // @formatter:on
+    }
+
+}

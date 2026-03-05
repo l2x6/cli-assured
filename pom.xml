@@ -8,14 +8,14 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
-    <groupId>org.l2x6.cli-assured</groupId>
+    <groupId>org.cli-assured</groupId>
     <artifactId>cli-assured-parent</artifactId>
     <version>0.0.1-SNAPSHOT</version>
     <packaging>pom</packaging>
 
     <name>${project.groupId}:${project.artifactId}</name>
     <description>Java DSL for testing command line applications</description>
-    <url>https://github.com/l2x6/cli-assured</url>
+    <url>https://github.com/cli-assured/cli-assured</url>
     <inceptionYear>2025</inceptionYear>
     <licenses>
         <license>
@@ -34,14 +34,14 @@
     </developers>
 
     <scm>
-        <connection>scm:git:git@github.com:l2x6/cli-assured.git</connection>
-        <developerConnection>scm:git:git@github.com:l2x6/cli-assured.git</developerConnection>
-        <url>https://github.com/l2x6/cli-assured</url>
+        <connection>scm:git:git@github.com:cli-assured/cli-assured.git</connection>
+        <developerConnection>scm:git:git@github.com:cli-assured/cli-assured.git</developerConnection>
+        <url>https://github.com/cli-assured/cli-assured</url>
         <tag>head</tag>
     </scm>
     <issueManagement>
         <system>GitHub Issues</system>
-        <url>https://github.com/l2x6/cli-assured/issues</url>
+        <url>https://github.com/cli-assured/cli-assured/issues</url>
     </issueManagement>
 
     <properties>
@@ -101,7 +101,7 @@
 
     <modules>
         <module>cli-assured</module>
-        <module>mvn-assured</module>
+        <module>cli-assured-mvn</module>
         <module>cli-assured-test-app</module>
         <module>cli-assured-tests</module>
     </modules>
@@ -109,18 +109,18 @@
     <dependencyManagement>
         <dependencies>
             <dependency>
-                <groupId>org.l2x6.cli-assured</groupId>
+                <groupId>org.cli-assured</groupId>
                 <artifactId>cli-assured</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
-                <groupId>org.l2x6.cli-assured</groupId>
+                <groupId>org.cli-assured</groupId>
                 <artifactId>cli-assured-test-app</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
-                <groupId>org.l2x6.cli-assured</groupId>
-                <artifactId>mvn-assured</artifactId>
+                <groupId>org.cli-assured</groupId>
+                <artifactId>cli-assured-mvn</artifactId>
                 <version>${project.version}</version>
             </dependency>
 

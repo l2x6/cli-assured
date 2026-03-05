@@ -9,7 +9,7 @@
     <modelVersion>4.0.0</modelVersion>
 
     <parent>
-        <groupId>org.l2x6.cli-assured</groupId>
+        <groupId>org.cli-assured</groupId>
         <artifactId>cli-assured-parent</artifactId>
         <version>0.0.1-SNAPSHOT</version>
     </parent>
@@ -19,15 +19,15 @@
 
     <dependencies>
         <dependency>
-            <groupId>org.l2x6.cli-assured</groupId>
+            <groupId>org.cli-assured</groupId>
             <artifactId>cli-assured</artifactId>
         </dependency>
         <dependency>
-            <groupId>org.l2x6.cli-assured</groupId>
-            <artifactId>mvn-assured</artifactId>
+            <groupId>org.cli-assured</groupId>
+            <artifactId>cli-assured-mvn</artifactId>
         </dependency>
         <dependency>
-            <groupId>org.l2x6.cli-assured</groupId>
+            <groupId>org.cli-assured</groupId>
             <artifactId>cli-assured-test-app</artifactId>
             <scope>test</scope>
         </dependency>
@@ -105,7 +105,7 @@
                                             <filtering>false</filtering>
                                         </resource>
                                         <resource>
-                                            <directory>${project.basedir}/../mvn-assured/target/classes</directory>
+                                            <directory>${project.basedir}/../cli-assured-mvn/target/classes</directory>
                                             <includes>
                                                 <include>**</include>
                                             </includes>
@@ -131,7 +131,7 @@
                                             <filtering>false</filtering>
                                         </resource>
                                         <resource>
-                                            <directory>${project.basedir}/../mvn-assured/src/main/java</directory>
+                                            <directory>${project.basedir}/../cli-assured-mvn/src/main/java</directory>
                                             <includes>
                                                 <include>**</include>
                                             </includes>
@@ -147,13 +147,13 @@
                         <artifactId>jacoco-maven-plugin</artifactId>
                         <configuration>
                             <includes>
-                                <include>org/l2x6/cli/assured/*</include>
-                                <include>org/l2x6/cli/assured/asserts/*</include>
-                                <include>org/l2x6/cli/assured/await/*</include>
-                                <include>org/l2x6/mvn/assured/*</include>
+                                <include>org/cliassured/*</include>
+                                <include>org/cliassured/asserts/*</include>
+                                <include>org/cliassured/await/*</include>
+                                <include>org/cliassured/mvn/*</include>
                             </includes>
                             <excludes>
-                                <exclude>org/l2x6/cli/assured/asserts/*AppendableWriter*</exclude>
+                                <exclude>org/cliassured/asserts/*AppendableWriter*</exclude>
                             </excludes>
                         </configuration>
                         <executions>
